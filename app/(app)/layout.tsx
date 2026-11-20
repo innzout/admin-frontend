@@ -18,11 +18,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const mustResetPassword = me?.mustResetPassword === true;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
-  // Employee/intern logins only get their own workspace — bounce direct
-  // URL visits to management pages (the API refuses them anyway).
-  const staffBlocked =
+  // Every role may open only the pages in its own sidebar. A typed URL to
+  // anything else (Settings for HR, Payroll runs for staff…) bounces home.
+  // The API refuses those calls anyway; this keeps the screen from showing.
+  const pageBlocked =
     !!me &&
-    isStaffRole(me.role) &&
     !navForRole(me.role)
       .flatMap((s) => s.items)
       .some((i) => pathname === i.href || pathname.startsWith(i.href + "/")) &&
@@ -42,14 +42,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!meLoading && mustResetPassword) {
       router.replace("/change-password");
     }
-    if (staffBlocked) router.replace("/my-tasks");
-  }, [loggedIn, meLoading, mustResetPassword, staffBlocked, router]);
+    if (pageBlocked) router.replace(isStaffRole(me?.role) ? "/my-tasks" : "/dashboard");
+  }, [loggedIn, meLoading, mustResetPassword, pageBlocked, me?.role, router]);
 
   if (!loggedIn) return null;
   // Wait for the reset-flag check before ever painting the app shell — a
   // brief blank beat here beats letting a forced-reset user see (and use)
   // the full app for a frame before being bounced out.
-  if (meLoading || mustResetPassword || staffBlocked) return null;
+  if (meLoading || mustResetPassword || pageBlocked) return null;
 
   return (
     <div className="flex min-h-screen w-full">

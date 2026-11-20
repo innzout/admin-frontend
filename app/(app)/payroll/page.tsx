@@ -31,7 +31,7 @@ export default function PayrollPage() {
   const { data: me } = useMe();
   const isPrivileged = me?.role === "admin" || me?.role === "hr";
 
-  const { data: runs, isLoading: runsLoading } = usePayrollRuns();
+  const { data: runs, isLoading: runsLoading } = usePayrollRuns(isPrivileged);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const { data: runPayslips, isLoading: runPayslipsLoading } = usePayslips({ payrollRunId: selectedRunId ?? undefined });
   const { data: myPayslips, isLoading: myPayslipsLoading } = usePayslips();

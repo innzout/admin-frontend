@@ -112,7 +112,7 @@ export function ExpenseDialog({
             {errors.title && <p className="text-sm text-destructive">{errors.title.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label>Category</Label>
               <Controller
@@ -169,7 +169,7 @@ export function ExpenseDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label>Project (optional)</Label>
               <Controller

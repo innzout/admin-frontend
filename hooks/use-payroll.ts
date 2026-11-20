@@ -1,23 +1,22 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, API } from "@/lib/api";
-import { getAccessToken } from "@/lib/session";
+import { api, apiFetch } from "@/lib/api";
 import type { CreateSalaryStructureInput, PayrollRun, Payslip, SalaryStructure } from "@/lib/types";
 
 function invalidatePayroll(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["payroll"] });
 }
 
+/** Salary history for one employee; nothing is fetched until one is chosen. */
 export function useSalaryStructures(employeeId?: string) {
-  const params = new URLSearchParams();
-  if (employeeId) params.set("employeeId", employeeId);
   return useQuery({
-    queryKey: ["payroll", "structures", employeeId ?? "all"],
+    queryKey: ["payroll", "structures", employeeId],
     queryFn: () =>
-      api<{ structures: SalaryStructure[] }>(`/api/v1/payroll/salary-structures?${params.toString()}`).then(
+      api<{ structures: SalaryStructure[] }>(`/api/v1/payroll/salary-structures?employeeId=${encodeURIComponent(employeeId ?? "")}`).then(
         (r) => r.structures,
       ),
+    enabled: !!employeeId,
   });
 }
 
@@ -33,9 +32,11 @@ export function useCreateSalaryStructure() {
   });
 }
 
-export function usePayrollRuns() {
+/** Runs are admin/HR-only on the API; pass enabled=false for other roles. */
+export function usePayrollRuns(enabled = true) {
   return useQuery({
     queryKey: ["payroll", "runs"],
+    enabled,
     queryFn: () => api<{ runs: PayrollRun[] }>("/api/v1/payroll/runs").then((r) => r.runs),
   });
 }
@@ -86,10 +87,7 @@ export function usePayslips(filters: PayslipFilters = {}) {
 
 /** Payslip PDF download is a plain authenticated file fetch, not JSON — bypasses the api() wrapper. */
 export async function downloadPayslipPdf(payslipId: string, filename: string) {
-  const token = getAccessToken();
-  const res = await fetch(`${API}/api/v1/payroll/payslips/${payslipId}/pdf`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await apiFetch(`/api/v1/payroll/payslips/${payslipId}/pdf`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? "Could not download payslip");

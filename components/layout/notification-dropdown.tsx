@@ -8,7 +8,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -43,7 +42,7 @@ export function NotificationDropdown() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between gap-2 p-3">
-          <DropdownMenuLabel className="p-0 font-medium">Notifications</DropdownMenuLabel>
+          <p className="text-sm font-medium">Notifications</p>
           {unreadCount > 0 && (
             <Button
               variant="ghost"

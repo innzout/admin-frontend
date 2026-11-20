@@ -1,8 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, API } from "@/lib/api";
-import { getAccessToken } from "@/lib/session";
+import { api, apiFetch } from "@/lib/api";
 import type { CreateInvoiceInput, Invoice, RecordPaymentInput, UpdateInvoiceInput } from "@/lib/types";
 
 export interface InvoiceFilters {
@@ -87,10 +86,7 @@ export function useRecordPayment() {
 
 /** Invoice PDF download is a plain authenticated file fetch, not JSON. */
 export async function downloadInvoicePdf(invoiceId: string, filename: string) {
-  const token = getAccessToken();
-  const res = await fetch(`${API}/api/v1/invoices/${invoiceId}/pdf`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+  const res = await apiFetch(`/api/v1/invoices/${invoiceId}/pdf`);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message ?? "Could not download invoice");

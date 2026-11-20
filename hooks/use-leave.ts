@@ -12,9 +12,11 @@ export function useLeaveTypes() {
   });
 }
 
-export function useLeaveBalances() {
+/** Balances belong to an employee record; pass enabled=false for logins without one (e.g. the admin account). */
+export function useLeaveBalances(enabled = true) {
   return useQuery({
     queryKey: ["leave", "balances"],
+    enabled,
     queryFn: () => api<{ balances: LeaveBalance[] }>("/api/v1/leave/balances").then((r) => r.balances),
   });
 }

@@ -18,6 +18,7 @@ import { useEmployees } from "@/hooks/use-employees";
 import { timeAgo } from "@/lib/format";
 import { LEAD_STAGES, leadStageLabel, type Lead } from "@/lib/company-types";
 import { amount, optionalDate, optionalEmail, optionalPhone, optionalText, requiredText, showApiError, LIMITS } from "@/lib/validation";
+import { phoneInput } from "@/lib/input-filters";
 
 const SOURCES: Record<string, string> = {
   website: "Website",
@@ -140,7 +141,7 @@ export function LeadDialog({ lead, open, onOpenChange }: { lead: Lead | null; op
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{lead ? lead.name : "New lead"}</DialogTitle>
         </DialogHeader>
@@ -155,7 +156,7 @@ export function LeadDialog({ lead, open, onOpenChange }: { lead: Lead | null; op
             <Input type="email" autoComplete="email" maxLength={254} {...register("email")} />
           </FormField>
           <FormField label="Phone" error={errors.phone?.message} hint="10-digit mobile, +91 optional">
-            <Input type="tel" inputMode="tel" autoComplete="tel" maxLength={16} {...register("phone")} />
+            <Input {...phoneInput} {...register("phone")} />
           </FormField>
           <FormField label="Source" error={errors.source?.message}>
             <NativeSelect {...register("source")}>

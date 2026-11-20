@@ -1,7 +1,8 @@
-import { clearSession, getAccessToken, getRefreshToken, setAccessToken } from "@/lib/session";
-import type { ApiErrorBody, AuthResponse } from "@/lib/types";
+import { clearSession } from "@/lib/session";
+import type { ApiErrorBody } from "@/lib/types";
 
 export const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const LOGIN_PATH = "/api/v1/auth/login";
 
 export class ApiError extends Error {
   status: number;
@@ -15,28 +16,29 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Fetch against the Go API with the session cookies. The header is the API's
+ * CSRF check: a cross-site page cannot send it without failing CORS.
+ */
+export function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(`${API}${path}`, {
+    ...init,
+    credentials: "include",
+    headers: { "X-Requested-With": "fetch", ...init?.headers },
+  });
+}
+
 // A refresh is in flight at most once at a time — concurrent 401s from a
 // batch of parallel requests all await the same promise instead of each
 // firing their own /auth/refresh call (which would race token rotation).
-let refreshInFlight: Promise<string | null> | null = null;
+let refreshInFlight: Promise<boolean> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
-
+/** Asks the API to rotate the session cookies; true when the session lives on. */
+function refreshSession(): Promise<boolean> {
   if (!refreshInFlight) {
-    refreshInFlight = fetch(`${API}/api/v1/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    })
-      .then(async (res) => {
-        if (!res.ok) return null;
-        const data = (await res.json()) as AuthResponse;
-        setAccessToken(data.accessToken);
-        return data.accessToken;
-      })
-      .catch(() => null)
+    refreshInFlight = apiFetch("/api/v1/auth/refresh", { method: "POST" })
+      .then((res) => res.ok)
+      .catch(() => false)
       .finally(() => {
         refreshInFlight = null;
       });
@@ -46,19 +48,14 @@ async function refreshAccessToken(): Promise<string | null> {
 
 /** Authenticated JSON fetch against the Go API, with one silent-refresh retry on 401. */
 export async function api<T>(path: string, init?: RequestInit, _retried = false): Promise<T> {
-  const token = getAccessToken();
-  const res = await fetch(`${API}${path}`, {
+  const res = await apiFetch(path, {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init?.headers,
-    },
+    headers: { "Content-Type": "application/json", ...init?.headers },
   });
 
-  if (res.status === 401 && !_retried) {
-    const newToken = await refreshAccessToken();
-    if (newToken) {
+  // Login itself answers 401 for a wrong password; that is not a lost session.
+  if (res.status === 401 && !_retried && path !== LOGIN_PATH) {
+    if (await refreshSession()) {
       return api<T>(path, init, true);
     }
     if (typeof window !== "undefined") {

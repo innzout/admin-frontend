@@ -77,6 +77,18 @@ export function useResetEmployeePassword() {
   });
 }
 
+/** Gives an existing employee a portal login; returns the one-time password. */
+export function useCreateEmployeeLogin() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api<{ tempPassword: string }>(`/api/v1/employees/${id}/login`, { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["logins"] });
+    },
+  });
+}
+
 // Deactivate is a one-way HR status change (never a hard delete — see
 // ARCHITECTURE.md §6.2) that also revokes the employee's portal login
 // server-side.

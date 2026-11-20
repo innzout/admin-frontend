@@ -127,11 +127,11 @@ export default function BillingPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Invoice #</TableHead>
-                <TableHead>Client</TableHead>
+                <TableHead className="hidden sm:table-cell">Client</TableHead>
                 <TableHead>Total</TableHead>
-                <TableHead>Balance</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead>Due Date</TableHead>
+                <TableHead className="hidden md:table-cell">Balance</TableHead>
+                <TableHead className="hidden lg:table-cell">Issue Date</TableHead>
+                <TableHead className="hidden md:table-cell">Due Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-20" />
               </TableRow>
@@ -151,11 +151,11 @@ export default function BillingPage() {
                       {inv.invoiceNumber}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{inv.clientName}</TableCell>
+                  <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">{inv.clientName}</TableCell>
                   <TableCell className="text-sm font-medium">{formatInrFull(inv.total)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{formatInrFull(inv.balanceDue)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{inv.issueDate.slice(0, 10)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{inv.dueDate.slice(0, 10)}</TableCell>
+                  <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{formatInrFull(inv.balanceDue)}</TableCell>
+                  <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">{inv.issueDate.slice(0, 10)}</TableCell>
+                  <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{inv.dueDate.slice(0, 10)}</TableCell>
                   <TableCell>
                     <StatusBadge tone={invoiceStatusTone[inv.status]}>{inv.status}</StatusBadge>
                   </TableCell>

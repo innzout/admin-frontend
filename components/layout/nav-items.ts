@@ -81,7 +81,7 @@ export const navSections: NavSection[] = [
       { label: "Notifications", href: "/notifications", icon: Bell, audience: "all" },
       { label: "Activity Log", href: "/audit-log", icon: ShieldCheck, adminOnly: true },
       { label: "Roles & Access", href: "/access", icon: KeyRound, adminOnly: true },
-      { label: "Settings", href: "/settings", icon: Settings, audience: "all" },
+      { label: "Settings", href: "/settings", icon: Settings, adminOnly: true },
     ],
   },
 ];

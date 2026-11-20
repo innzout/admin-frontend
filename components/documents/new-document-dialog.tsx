@@ -93,7 +93,7 @@ export function NewDocumentDialog({ open, onOpenChange }: { open: boolean; onOpe
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{template ? template.label : "New document"}</DialogTitle>
           <DialogDescription>{template ? template.description : "Pick a template. You can edit every line before issuing it."}</DialogDescription>

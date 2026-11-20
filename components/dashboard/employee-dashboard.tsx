@@ -1,19 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { toast } from "sonner";
 import { CalendarCheck, CheckCircle2, Circle, Clock, DoorOpen, ListChecks, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PanelCard } from "@/components/common/panel-card";
 import { StatBlock, type BlockTone } from "@/components/common/stat-block";
 import { StatusBadge } from "@/components/common/status-badge";
-import { useCheckIn, useCheckOut, useTodayAttendance } from "@/hooks/use-attendance";
+import { useTodayAttendance } from "@/hooks/use-attendance";
+import { useDayActions } from "@/hooks/use-day-actions";
 import { useLeaveBalances } from "@/hooks/use-leave";
 import { useTasks } from "@/hooks/use-tasks";
 import { usePayslips } from "@/hooks/use-payroll";
 import { taskPriorityTone, taskStatusLabel, taskStatusTone } from "@/lib/status";
 import { formatInrFull } from "@/lib/format";
-import { ApiError } from "@/lib/api";
 import type { Session } from "@/lib/session";
 
 const balanceTones: BlockTone[] = ["blue", "green", "purple", "orange", "yellow"];
@@ -35,27 +34,16 @@ export function EmployeeDashboard({ session, employeeId }: { session: Session; e
   const { data: balances } = useLeaveBalances();
   const { data: taskResult } = useTasks({ assigneeId: employeeId, limit: 5 });
   const { data: payslips } = usePayslips();
-  const checkIn = useCheckIn();
-  const checkOut = useCheckOut();
+  const { doCheckIn, requestCheckOut, checkInPending, checkOutPending, confirmDialog } = useDayActions();
 
   const canCheckIn = !today || !today.checkInAt;
   const canCheckOut = today?.checkInAt && !today.checkOutAt;
   const latestPayslip = payslips?.[0];
   const openTasks = (taskResult?.tasks ?? []).filter((t) => t.status !== "completed" && t.status !== "cancelled");
 
-  const doCheckIn = () =>
-    checkIn.mutate(false, {
-      onSuccess: () => toast.success("Checked in"),
-      onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not check in"),
-    });
-  const doCheckOut = () =>
-    checkOut.mutate(undefined, {
-      onSuccess: () => toast.success("Checked out"),
-      onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not check out"),
-    });
-
   return (
     <div className="flex flex-col gap-6">
+      {confirmDialog}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">
           {greeting()}
@@ -77,12 +65,12 @@ export function EmployeeDashboard({ session, employeeId }: { session: Session; e
         </p>
         <div className="mt-4 flex gap-2">
           {canCheckIn && (
-            <Button className="rounded-full bg-white text-green-700 hover:bg-white/90" disabled={checkIn.isPending} onClick={doCheckIn}>
+            <Button className="rounded-full bg-white text-green-700 hover:bg-white/90" disabled={checkInPending} onClick={doCheckIn}>
               Check In
             </Button>
           )}
           {canCheckOut && (
-            <Button className="rounded-full bg-white text-green-700 hover:bg-white/90" disabled={checkOut.isPending} onClick={doCheckOut}>
+            <Button className="rounded-full bg-white text-green-700 hover:bg-white/90" disabled={checkOutPending} onClick={requestCheckOut}>
               Check Out
             </Button>
           )}
@@ -179,7 +167,7 @@ export function EmployeeDashboard({ session, employeeId }: { session: Session; e
             <p className="text-xs text-muted-foreground">Balances &amp; requests</p>
           </div>
         </Button>
-        <Button render={<Link href="/tasks" />} variant="outline" className="h-auto justify-start gap-3 rounded-xl p-4">
+        <Button render={<Link href="/my-tasks" />} variant="outline" className="h-auto justify-start gap-3 rounded-xl p-4">
           <ListChecks className="size-5 text-primary" />
           <div className="text-left">
             <p className="text-sm font-medium">Tasks</p>

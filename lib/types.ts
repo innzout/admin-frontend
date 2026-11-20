@@ -3,6 +3,19 @@ export type Role = "admin" | "hr" | "manager" | "employee" | "intern";
 /** Plain staff logins — see only their own tasks, attendance and leave. */
 export const isStaffRole = (role: string | undefined) => role === "employee" || role === "intern";
 
+/** A portal login as listed on the Roles & Access screen. */
+export interface Login {
+  id: string;
+  name: string;
+  username: string;
+  role: Role;
+  isActive: boolean;
+  lastLoginAt?: string;
+  employeeId?: string;
+  employeeCode?: string;
+  designation?: string;
+}
+
 export interface User {
   id: string;
   employeeId?: string;
@@ -20,8 +33,6 @@ export interface User {
 
 export interface AuthResponse {
   user: User;
-  accessToken: string;
-  refreshToken: string;
   expiresInSec: number;
 }
 
@@ -462,6 +473,9 @@ export interface AuditLogEntry {
   path: string;
   statusCode: number;
   ipAddress?: string;
+  /** The record the change touched, and its name at that moment. */
+  recordId?: string;
+  recordLabel?: string;
   createdAt: string;
 }
 

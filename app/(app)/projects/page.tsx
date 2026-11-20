@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Trash2, X } from "lucide-react";
+import { FolderKanban, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/common/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -123,7 +124,16 @@ export default function ProjectsPage() {
 
       {isLoading && <Skeleton className="h-64 w-full rounded-xl" />}
 
-      {!isLoading && view === "list" && (
+      {!isLoading && projects.length === 0 && (
+        <EmptyState
+          className="rounded-xl border bg-card"
+          icon={FolderKanban}
+          title="No projects here yet"
+          hint="Create a project to assign a team, track tasks and follow its deadline."
+        />
+      )}
+
+      {!isLoading && projects.length > 0 && view === "list" && (
         <>
           <div className="overflow-x-auto rounded-xl border bg-card">
             <Table>
@@ -206,7 +216,7 @@ export default function ProjectsPage() {
         </>
       )}
 
-      {!isLoading && view === "kanban" && (
+      {!isLoading && projects.length > 0 && view === "kanban" && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {kanbanColumns.map((status) => (
             <div key={status} className="flex flex-col gap-3">

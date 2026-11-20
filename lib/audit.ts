@@ -81,9 +81,9 @@ export const formatAuditTime = (iso: string) =>
 const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
 
 export function auditCsv(entries: AuditLogEntry[]): string {
-  const header = ["When (IST)", "Who", "Role", "Action", "Method", "Path", "Status", "IP"];
+  const header = ["When (IST)", "Who", "Role", "Action", "Record", "Method", "Path", "Status", "IP"];
   const rows = entries.map((e) =>
-    [formatAuditTime(e.createdAt), e.actorName ?? "", e.actorRole ?? "", describeAction(e.method, e.path), e.method, e.path, String(e.statusCode), e.ipAddress ?? ""].map(csvCell).join(","),
+    [formatAuditTime(e.createdAt), e.actorName ?? "", e.actorRole ?? "", describeAction(e.method, e.path), e.recordLabel ?? "", e.method, e.path, String(e.statusCode), e.ipAddress ?? ""].map(csvCell).join(","),
   );
   return [header.join(","), ...rows].join("\n");
 }

@@ -20,6 +20,7 @@ import { useCreateClient, useUpdateClient } from "@/hooks/use-clients";
 import { ApiError } from "@/lib/api";
 import type { Client } from "@/lib/types";
 import { requiredText, requiredEmail, optionalPhone, optionalGstin, optionalText } from "@/lib/validation";
+import { phoneInput, upperCodeInput } from "@/lib/input-filters";
 
 const schema = z.object({
   companyName: requiredText("Company name"),
@@ -122,34 +123,34 @@ export function ClientDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="cl-company">Company name</Label>
-              <Input id="cl-company" {...register("companyName")} />
+              <Input id="cl-company" maxLength={150} autoComplete="organization" {...register("companyName")} />
               {errors.companyName && <p className="text-sm text-destructive">{errors.companyName.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="cl-contact">Contact person</Label>
-              <Input id="cl-contact" {...register("contactPerson")} />
+              <Input id="cl-contact" maxLength={150} autoComplete="name" {...register("contactPerson")} />
               {errors.contactPerson && <p className="text-sm text-destructive">{errors.contactPerson.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="cl-email">Email</Label>
-              <Input id="cl-email" type="email" disabled={isEdit} {...register("email")} />
+              <Input id="cl-email" type="email" maxLength={254} autoComplete="email" disabled={isEdit} {...register("email")} />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="cl-phone">Phone</Label>
-              <Input id="cl-phone" {...register("phone")} />
+              <Input id="cl-phone" {...phoneInput} {...register("phone")} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="cl-gst">GST number</Label>
-              <Input id="cl-gst" {...register("gstNumber")} />
+              <Input id="cl-gst" {...upperCodeInput(15)} {...register("gstNumber")} />
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="cl-address">Address</Label>
-              <Input id="cl-address" {...register("address")} />
+              <Input id="cl-address" maxLength={500} {...register("address")} />
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="cl-source">Source</Label>
-              <Input id="cl-source" placeholder="Referral, website, outbound…" {...register("source")} />
+              <Input id="cl-source" placeholder="Referral, website, outbound…" maxLength={100} {...register("source")} />
             </div>
           </div>
           <DialogFooter>

@@ -17,6 +17,7 @@ import { formatInrFull } from "@/lib/format";
 import { ApiError } from "@/lib/api";
 import type { Expense } from "@/lib/types";
 import { useConfirm } from "@/components/common/use-confirm";
+import { EmptyState } from "@/components/common/empty-state";
 
 const PAGE_SIZE = 15;
 
@@ -36,7 +37,16 @@ export default function ExpensesPage() {
   const approved = expenses.filter((e) => e.status === "approved" || e.status === "reimbursed").reduce((sum, e) => sum + e.amount, 0);
   const pendingReview = expenses.filter((e) => e.status === "pending").reduce((sum, e) => sum + e.amount, 0);
 
-  const decide = (e: Expense, decision: "approve" | "reject") => {
+  const decide = (e: Expense, decision: "approve" | "reject") =>
+    confirm({
+      title: decision === "approve" ? "Approve this expense?" : "Reject this expense?",
+      description: `${e.title} (${formatInrFull(e.amount)}). The decision can't be changed afterwards.`,
+      confirmLabel: decision === "approve" ? "Approve" : "Reject",
+      destructive: decision === "reject",
+      onConfirm: () => decideNow(e, decision),
+    });
+
+  const decideNow = (e: Expense, decision: "approve" | "reject") => {
     decideExpense.mutate(
       { id: e.id, decision },
       {
@@ -89,7 +99,7 @@ export default function ExpensesPage() {
 
       {!isLoading && (
         <div className="flex flex-col divide-y rounded-xl border bg-card">
-          {expenses.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No expenses yet.</p>}
+          {expenses.length === 0 && <EmptyState title="No expenses yet" hint="Submitted expense claims appear here for approval and reimbursement." />}
           {expenses.map((e) => {
             const canDecide = e.status === "pending" && (isPrivileged || e.paidByEmployeeId !== me.employeeId);
             return (

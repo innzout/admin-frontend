@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { KeyRound, LogOut, Menu, Search, User as UserIcon } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { KeyRound, LogOut, Menu, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AvatarInitials } from "@/components/common/avatar-initials";
+import { PageJump } from "@/components/layout/page-jump";
 import { ThemeToggle } from "@/components/common/theme-toggle";
 import { NotificationDropdown } from "@/components/layout/notification-dropdown";
 import { useLogout } from "@/hooks/use-auth";
@@ -47,10 +48,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
         )}
       </nav>
 
-      <div className="relative mx-auto max-w-md flex-1">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search anything…" className="rounded-full bg-muted/60 pl-9" />
-      </div>
+      <PageJump />
 
       <div className="flex shrink-0 items-center gap-1">
         <ThemeToggle />
@@ -62,10 +60,12 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
             <AvatarInitials name={session.name || session.email} className="size-8" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuGroup>
             <DropdownMenuLabel className="flex flex-col">
               <span className="font-medium">{session.name}</span>
               <span className="text-xs font-normal text-muted-foreground">{session.email}</span>
             </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>
               <UserIcon className="size-4" />

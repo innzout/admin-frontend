@@ -16,6 +16,7 @@ import { useClients, useDeleteClient } from "@/hooks/use-clients";
 import { clientStatusTone } from "@/lib/status";
 import { ApiError } from "@/lib/api";
 import type { Client } from "@/lib/types";
+import { EmptyState } from "@/components/common/empty-state";
 
 const PAGE_SIZE = 10;
 
@@ -79,7 +80,7 @@ export default function ClientsPage() {
       <div className="flex flex-col gap-3">
         {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
         {!isLoading && clients.length === 0 && (
-          <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No clients yet.</p>
+          <EmptyState className="rounded-xl border bg-card" title="No clients yet" hint="Add a client, or convert a won lead, to start tracking projects and invoices for them." />
         )}
         {clients.map((c) => (
           <div key={c.id} className="flex flex-col gap-4 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">

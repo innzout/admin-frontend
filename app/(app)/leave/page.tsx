@@ -15,13 +15,15 @@ import { useCancelLeave, useDecideLeave, useLeaveBalances, useLeaveRequests } fr
 import { useMe } from "@/hooks/use-auth";
 import { leaveRequestStatusTone } from "@/lib/status";
 import { ApiError } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { LeaveRequest } from "@/lib/types";
+import { EmptyState } from "@/components/common/empty-state";
 
 const balanceTones: BlockTone[] = ["blue", "green", "purple", "orange", "yellow"];
 
 export default function LeaveManagementPage() {
   const { data: me } = useMe();
-  const { data: balances, isLoading: balancesLoading } = useLeaveBalances();
+  const { data: balances, isLoading: balancesLoading } = useLeaveBalances(!!me?.employeeId);
   const { data: requests, isLoading: requestsLoading } = useLeaveRequests();
   const decideLeave = useDecideLeave();
   const cancelLeave = useCancelLeave();
@@ -91,7 +93,7 @@ export default function LeaveManagementPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={cn("grid grid-cols-2 gap-3 lg:grid-cols-4", !balancesLoading && !balances?.length && "hidden")}>
         {balancesLoading
           ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
           : (balances ?? []).map((b, i) => (
@@ -117,7 +119,7 @@ export default function LeaveManagementPage() {
         <div className="flex flex-col divide-y">
           {requestsLoading && <div className="p-4 text-sm text-muted-foreground">Loading…</div>}
           {!requestsLoading && (requests ?? []).length === 0 && (
-            <div className="p-4 text-sm text-muted-foreground">No leave requests yet.</div>
+            <EmptyState className="py-8" title="No leave requests yet" hint="Use Apply Leave to request time off. Requests waiting for approval appear here." />
           )}
           {(requests ?? []).map((r) => (
             <div key={r.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">

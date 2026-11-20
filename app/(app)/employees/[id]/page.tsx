@@ -12,7 +12,8 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { PanelCard } from "@/components/common/panel-card";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { EditEmployeeDialog } from "@/components/employees/edit-employee-dialog";
-import { useDeactivateEmployee, useEmployee, useResetEmployeePassword } from "@/hooks/use-employees";
+import { useCreateEmployeeLogin, useDeactivateEmployee, useEmployee, useResetEmployeePassword } from "@/hooks/use-employees";
+import { TempPasswordDialog, type TempCredentials } from "@/components/employees/temp-password-dialog";
 import { useMe } from "@/hooks/use-auth";
 import { useAttendanceList } from "@/hooks/use-attendance";
 import { useLeaveRequests } from "@/hooks/use-leave";
@@ -52,6 +53,9 @@ export default function EmployeeDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [resetConfirm, setResetConfirm] = useState(false);
   const [deactivateConfirm, setDeactivateConfirm] = useState(false);
+  const createLogin = useCreateEmployeeLogin();
+  const [loginConfirm, setLoginConfirm] = useState(false);
+  const [credentials, setCredentials] = useState<TempCredentials | null>(null);
 
   const isPrivileged = me?.role === "admin" || me?.role === "hr";
 
@@ -91,16 +95,21 @@ export default function EmployeeDetailPage() {
   const confirmResetPassword = () => {
     resetPassword.mutate(employee.id, {
       onSuccess: (res) => {
-        toast.info(`New temporary password: ${res.tempPassword}`, {
-          description: `Share it with ${employee.fullName} securely — it won't be shown again. They'll be asked to set a new one at next login.`,
-          duration: 30000,
-        });
+        setCredentials({ name: employee.fullName, username: employee.employeeCode.toLowerCase(), password: res.tempPassword });
         setResetConfirm(false);
       },
       onError: (err) => {
         toast.error(err instanceof ApiError ? err.message : "Could not reset password");
         setResetConfirm(false);
       },
+    });
+  };
+
+  const confirmCreateLogin = () => {
+    createLogin.mutate(employee.id, {
+      onSuccess: (res) => setCredentials({ name: employee.fullName, username: employee.employeeCode.toLowerCase(), password: res.tempPassword }),
+      onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not create the login"),
+      onSettled: () => setLoginConfirm(false),
     });
   };
 
@@ -144,6 +153,12 @@ export default function EmployeeDetailPage() {
             <Button variant="outline" size="sm" onClick={() => setResetConfirm(true)}>
               <KeyRound className="size-4" />
               Reset Password
+            </Button>
+          )}
+          {!employee.hasLogin && employee.status !== "exited" && (
+            <Button variant="outline" size="sm" onClick={() => setLoginConfirm(true)}>
+              <KeyRound className="size-4" />
+              Give Portal Login
             </Button>
           )}
           {employee.status !== "exited" && (
@@ -266,6 +281,19 @@ export default function EmployeeDetailPage() {
         isPending={resetPassword.isPending}
         onConfirm={confirmResetPassword}
       />
+
+      <ConfirmDialog
+        open={loginConfirm}
+        onOpenChange={setLoginConfirm}
+        title={`Give ${employee.fullName} a portal login?`}
+        description={`They sign in with username ${employee.employeeCode.toLowerCase()} and a one-time password shown next. They start as ${employee.employmentType === "intern" ? "Intern" : "Employee"}; an admin can change the role under Roles & Access.`}
+        confirmLabel="Create login"
+        destructive={false}
+        isPending={createLogin.isPending}
+        onConfirm={confirmCreateLogin}
+      />
+
+      <TempPasswordDialog credentials={credentials} onClose={() => setCredentials(null)} />
     </div>
   );
 }

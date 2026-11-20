@@ -18,11 +18,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateEmployee } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
 import { ApiError } from "@/lib/api";
-import { requiredText, requiredEmail, optionalPhone, requiredDate } from "@/lib/validation";
+import {
+  requiredText,
+  requiredEmail,
+  optionalPhone,
+  requiredDate,
+} from "@/lib/validation";
+import { phoneInput } from "@/lib/input-filters";
+import {
+  TempPasswordDialog,
+  type TempCredentials,
+} from "@/components/employees/temp-password-dialog";
 
 const schema = z.object({
   fullName: requiredText("Full name"),
@@ -39,6 +55,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function AddEmployeeDialog() {
   const [open, setOpen] = useState(false);
+  const [credentials, setCredentials] = useState<TempCredentials | null>(null);
   const { data: departments } = useDepartments();
   const createEmployee = useCreateEmployee();
 
@@ -50,7 +67,7 @@ export function AddEmployeeDialog() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { employmentType: "full_time", createLogin: false },
+    defaultValues: { employmentType: "full_time", createLogin: true },
   });
 
   const onSubmit = (values: FormValues) => {
@@ -62,11 +79,14 @@ export function AddEmployeeDialog() {
       },
       {
         onSuccess: (res) => {
-          toast.success(`${res.employee.fullName} was added (${res.employee.employeeCode})`);
+          toast.success(
+            `${res.employee.fullName} was added (${res.employee.employeeCode})`,
+          );
           if (res.tempPassword) {
-            toast.info(`Username: ${res.employee.employeeCode} · Temporary password: ${res.tempPassword}`, {
-              description: "Share both with the employee securely — the password won't be shown again.",
-              duration: 20000,
+            setCredentials({
+              name: res.employee.fullName,
+              username: res.employee.employeeCode.toLowerCase(),
+              password: res.tempPassword,
             });
           }
           if (res.warning) toast.warning(res.warning);
@@ -74,111 +94,165 @@ export function AddEmployeeDialog() {
           setOpen(false);
         },
         onError: (err) => {
-          toast.error(err instanceof ApiError ? err.message : "Could not add employee");
+          toast.error(
+            err instanceof ApiError ? err.message : "Could not add employee",
+          );
         },
       },
     );
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button>
-            <Plus className="size-4" />
-            Add Employee
-          </Button>
-        }
+    <>
+      <TempPasswordDialog
+        credentials={credentials}
+        onClose={() => setCredentials(null)}
       />
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Add Employee</DialogTitle>
-          <DialogDescription>Creates the HR record. Optionally provisions a portal login.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="fullName">Full name</Label>
-              <Input id="fullName" {...register("fullName")} />
-              {errors.fullName && <p className="text-sm text-destructive">{errors.fullName.message}</p>}
-            </div>
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" {...register("email")} />
-              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" {...register("phone")} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="joinDate">Join date</Label>
-              <Input id="joinDate" type="date" {...register("joinDate")} />
-              {errors.joinDate && <p className="text-sm text-destructive">{errors.joinDate.message}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="designation">Designation</Label>
-              <Input id="designation" placeholder="e.g. React Developer" {...register("designation")} />
-              {errors.designation && <p className="text-sm text-destructive">{errors.designation.message}</p>}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Employment type</Label>
-              <Controller
-                control={control}
-                name="employmentType"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full_time">Full-time</SelectItem>
-                      <SelectItem value="part_time">Part-time</SelectItem>
-                      <SelectItem value="contract">Contract</SelectItem>
-                      <SelectItem value="intern">Intern</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <Label>Department</Label>
-              <Controller
-                control={control}
-                name="departmentId"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Unassigned" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(departments ?? []).map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="size-4 rounded border-input" {...register("createLogin")} />
-            Create a portal login for this employee
-          </label>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancel
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger
+          render={
+            <Button>
+              <Plus className="size-4" />
+              Add Employee
             </Button>
-            <Button type="submit" disabled={createEmployee.isPending}>
-              {createEmployee.isPending ? "Adding…" : "Add Employee"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          }
+        />
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Employee</DialogTitle>
+            <DialogDescription>
+              Creates the HR record. Optionally provisions a portal login.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
+            noValidate
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="col-span-2 flex flex-col gap-1.5">
+                <Label htmlFor="fullName">Full name</Label>
+                <Input
+                  id="fullName"
+                  maxLength={150}
+                  autoComplete="off"
+                  {...register("fullName")}
+                />
+                {errors.fullName && (
+                  <p className="text-sm text-destructive">
+                    {errors.fullName.message}
+                  </p>
+                )}
+              </div>
+              <div className="col-span-2 flex flex-col gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  maxLength={254}
+                  autoComplete="off"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" {...phoneInput} {...register("phone")} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="joinDate">Join date</Label>
+                <Input id="joinDate" type="date" {...register("joinDate")} />
+                {errors.joinDate && (
+                  <p className="text-sm text-destructive">
+                    {errors.joinDate.message}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="designation">Designation</Label>
+                <Input
+                  id="designation"
+                  placeholder="e.g. React Developer"
+                  maxLength={100}
+                  {...register("designation")}
+                />
+                {errors.designation && (
+                  <p className="text-sm text-destructive">
+                    {errors.designation.message}
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label>Employment type</Label>
+                <Controller
+                  control={control}
+                  name="employmentType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full_time">Full-time</SelectItem>
+                        <SelectItem value="part_time">Part-time</SelectItem>
+                        <SelectItem value="contract">Contract</SelectItem>
+                        <SelectItem value="intern">Intern</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+              <div className="col-span-2 flex flex-col gap-1.5">
+                <Label>Department</Label>
+                <Controller
+                  control={control}
+                  name="departmentId"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Unassigned" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(departments ?? []).map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4 rounded border-input"
+                {...register("createLogin")}
+              />
+              Create a portal login for this employee
+            </label>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createEmployee.isPending}>
+                {createEmployee.isPending ? "Adding…" : "Add Employee"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

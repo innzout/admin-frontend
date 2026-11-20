@@ -1,5 +1,6 @@
 "use client";
 
+import { ApiError } from "@/lib/api";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
@@ -12,7 +13,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 30_000,
-            retry: 1,
+            // One retry for network blips and server errors. A 4xx is the
+            // server's final answer (forbidden, not found), so retrying only
+            // keeps loading placeholders on screen longer.
+            retry: (failureCount, error) => !(error instanceof ApiError && error.status < 500) && failureCount < 1,
           },
         },
       }),

@@ -47,7 +47,7 @@ import { useAttendanceList } from "@/hooks/use-attendance";
 import { useClients } from "@/hooks/use-clients";
 import { useProjects } from "@/hooks/use-projects";
 import { useMe } from "@/hooks/use-auth";
-import { readSession } from "@/lib/session";
+import { readSession, type Session } from "@/lib/session";
 import { formatInr } from "@/lib/format";
 import { useLeadSummary, useLedgerSummary } from "@/hooks/use-company";
 import { useTasks } from "@/hooks/use-tasks";
@@ -65,9 +65,19 @@ function greeting(): string {
   return "Good evening";
 }
 
+// Picks the view before any data loads, so employee, intern and manager
+// logins never request company-wide data they are not allowed to read.
 export default function DashboardPage() {
   const session = readSession();
   const { data: me } = useMe();
+  if (!me) return null;
+  if (me.role !== "admin" && me.role !== "hr") {
+    return <EmployeeDashboard session={session} employeeId={me.employeeId} />;
+  }
+  return <CompanyDashboard session={session} />;
+}
+
+function CompanyDashboard({ session }: { session: Session }) {
   const companyName = useCompanyName() || "your company";
   const { data: employeePage } = useEmployees({ limit: 1 });
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -76,18 +86,12 @@ export default function DashboardPage() {
   const { data: projectsResult } = useProjects({ limit: 100 });
   const { data: taskResult } = useTasks({ limit: 100 });
   const { data: invoicesResult } = useInvoices({ limit: 100 });
-  const isMgmt = session.role === "admin" || session.role === "hr" || session.role === "manager";
-  const { data: leadSummary } = useLeadSummary(isMgmt);
-  const { data: ledger } = useLedgerSummary(isMgmt);
+  const { data: leadSummary } = useLeadSummary(true);
+  const { data: ledger } = useLedgerSummary(true);
   const clients = clientsResult?.clients ?? [];
   const projects = projectsResult?.projects ?? [];
   const tasks = taskResult?.tasks ?? [];
   const invoices = invoicesResult?.invoices ?? [];
-
-  if (!me) return null;
-  if (me.role !== "admin" && me.role !== "hr") {
-    return <EmployeeDashboard session={session} employeeId={me.employeeId} />;
-  }
 
   // Every KPI below that has a real detail page is derived from that page's
   // own data source — never a second, independently-typed number that can

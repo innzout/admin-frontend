@@ -17,6 +17,7 @@ import { timeAgo } from "@/lib/format";
 import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Task, TaskStatus } from "@/lib/types";
+import { EmptyState } from "@/components/common/empty-state";
 
 const COLUMNS: TaskStatus[] = ["new", "in_progress", "in_review", "completed"];
 const NEXT: Partial<Record<TaskStatus, TaskStatus>> = { new: "in_progress", in_progress: "in_review", in_review: "completed" };
@@ -163,7 +164,7 @@ export default function MyTasksPage() {
       )}
 
       {!isLoading && tasks?.length === 0 && (
-        <p className="rounded-xl border bg-card p-8 text-center text-sm text-muted-foreground">No tasks assigned to you yet.</p>
+        <EmptyState className="rounded-xl border bg-card" title="No tasks assigned to you yet" hint="Tasks your manager assigns to you will show up here with their due dates." />
       )}
 
       <TaskDetail task={selected} onClose={() => setSelected(null)} />

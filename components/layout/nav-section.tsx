@@ -49,8 +49,8 @@ export function NavSectionGroup({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                    active && "bg-primary/15 text-primary hover:bg-primary/15 hover:text-primary",
+                    "flex items-center justify-between rounded-md px-3 py-2 text-sm text-sidebar-foreground/75 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                    active && "bg-primary/15 font-medium text-primary hover:bg-primary/15 hover:text-primary",
                   )}
                 >
                   <span className="flex items-center gap-2.5">

@@ -93,7 +93,7 @@ export default function AuditLogPage() {
       />
 
       <div className="flex flex-wrap items-end gap-2">
-        <SearchInput value={filters.search ?? ""} onChange={(v) => set({ search: v })} placeholder="Search person or record…" className="w-full sm:w-64" />
+        <SearchInput value={filters.search ?? ""} onChange={(v) => set({ search: v })} placeholder="Search person or record name…" className="w-full sm:w-64" />
         <NativeSelect aria-label="Role" className="w-full sm:w-36" value={filters.role ?? ""} onChange={(e) => set({ role: e.target.value || undefined })}>
           <option value="">All roles</option>
           {ROLES.map((r) => (
@@ -144,7 +144,6 @@ export default function AuditLogPage() {
                 <TableHead>When</TableHead>
                 <TableHead>Who</TableHead>
                 <TableHead>What they did</TableHead>
-                <TableHead className="hidden lg:table-cell">Record</TableHead>
                 <TableHead>Result</TableHead>
               </TableRow>
             </TableHeader>
@@ -152,14 +151,14 @@ export default function AuditLogPage() {
               {isLoading &&
                 Array.from({ length: 5 }, (_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5}>
+                    <TableCell colSpan={4}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
                 ))}
               {!isLoading && entries.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
                     {filtered || dateError ? "No activity matches these filters." : "No activity recorded yet."}
                   </TableCell>
                 </TableRow>
@@ -171,9 +170,9 @@ export default function AuditLogPage() {
                     <p className="text-sm font-medium">{e.actorName ?? "System"}</p>
                     <p className="text-xs text-muted-foreground capitalize">{e.actorRole ?? "—"}</p>
                   </TableCell>
-                  <TableCell className="text-sm">{describeAction(e.method, e.path)}</TableCell>
-                  <TableCell className="hidden max-w-xs truncate font-mono text-xs text-muted-foreground lg:table-cell" title={e.path}>
-                    {e.path.replace(/^\/api\/v1/, "")}
+                  <TableCell className="max-w-xs" title={e.path.replace(/^\/api\/v1/, "")}>
+                    <p className="text-sm">{describeAction(e.method, e.path)}</p>
+                    {e.recordLabel && <p className="truncate text-xs text-muted-foreground">{e.recordLabel}</p>}
                   </TableCell>
                   <TableCell>
                     <StatusBadge tone={statusTone(e.statusCode)}>{e.statusCode < 400 ? "Done" : e.statusCode < 500 ? "Refused" : "Failed"}</StatusBadge>

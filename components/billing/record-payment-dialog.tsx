@@ -90,7 +90,7 @@ export function RecordPaymentDialog({
             <Input id="pay-date" type="date" {...register("paidOn")} />
             {errors.paidOn && <p className="text-sm text-destructive">{errors.paidOn.message}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="pay-method">Method</Label>
               <Input id="pay-method" placeholder="Bank transfer, UPI…" {...register("method")} />

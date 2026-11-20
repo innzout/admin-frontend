@@ -141,7 +141,7 @@ export function InvoiceDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label>Client</Label>
               <Controller
@@ -213,15 +213,16 @@ export function InvoiceDialog({
             </div>
             <div className="flex flex-col gap-2">
               {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-[1fr_70px_100px_auto] items-start gap-2">
-                  <Input placeholder="Description" {...register(`lineItems.${index}.description`)} />
-                  <Input type="number" step="0.01" placeholder="Qty" {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })} />
-                  <Input type="number" step="0.01" placeholder="Rate" {...register(`lineItems.${index}.rate`, { valueAsNumber: true })} />
+                <div key={field.id} className="grid grid-cols-[1fr_1fr_auto] items-start gap-2 border-b pb-2 last:border-0 sm:grid-cols-[1fr_70px_100px_auto] sm:border-0 sm:pb-0">
+                  <Input placeholder="Description" aria-label={`Item ${index + 1} description`} maxLength={300} className="col-span-3 sm:col-span-1" aria-invalid={!!errors.lineItems?.[index]?.description} {...register(`lineItems.${index}.description`)} />
+                  <Input type="number" step="0.01" placeholder="Qty" aria-label={`Item ${index + 1} quantity`} aria-invalid={!!errors.lineItems?.[index]?.quantity} {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })} />
+                  <Input type="number" step="0.01" placeholder="Rate" aria-label={`Item ${index + 1} rate`} aria-invalid={!!errors.lineItems?.[index]?.rate} {...register(`lineItems.${index}.rate`, { valueAsNumber: true })} />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     className="text-muted-foreground hover:text-destructive"
+                    aria-label={`Remove item ${index + 1}`}
                     disabled={fields.length <= 1}
                     onClick={() => remove(index)}
                   >
@@ -233,10 +234,10 @@ export function InvoiceDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="inv-tax">Tax %</Label>
-              <Input id="inv-tax" type="number" step="0.01" {...register("taxPercent", { valueAsNumber: true })} />
+              <Input id="inv-tax" type="number" step="0.01" max={100} {...register("taxPercent", { valueAsNumber: true })} />
             </div>
             <div className="flex flex-col justify-end gap-1 rounded-lg border bg-muted/30 p-2.5 text-sm">
               <div className="flex justify-between text-muted-foreground">

@@ -16,6 +16,7 @@ import { useDeactivateEmployee } from "@/hooks/use-employees";
 import { employeeStatusLabel, employeeStatusTone } from "@/lib/status";
 import { ApiError } from "@/lib/api";
 import type { Employee } from "@/lib/types";
+import { EmptyState } from "@/components/common/empty-state";
 
 const employmentTypeLabel: Record<string, string> = {
   full_time: "Full-time",
@@ -49,7 +50,7 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
   }
 
   if (employees.length === 0) {
-    return <p className="py-12 text-center text-sm text-muted-foreground">No employees match your filters.</p>;
+    return <EmptyState title="No employees found" hint="Try a different search or filter, or add your first employee." />;
   }
 
   return (
@@ -58,10 +59,10 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
         <TableHeader>
           <TableRow>
             <TableHead>Employee</TableHead>
-            <TableHead>Department</TableHead>
-            <TableHead>Designation</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Joined</TableHead>
+            <TableHead className="hidden md:table-cell">Department</TableHead>
+            <TableHead className="hidden sm:table-cell">Designation</TableHead>
+            <TableHead className="hidden lg:table-cell">Type</TableHead>
+            <TableHead className="hidden lg:table-cell">Joined</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-10" />
           </TableRow>
@@ -72,7 +73,8 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
               <TableCell>
                 <Link href={`/employees/${e.id}`} className="group flex items-center gap-3">
                   <AvatarInitials name={e.fullName} />
-                  <div className="min-w-0">
+                  {/* Capped on phones so a long email cannot push Status off-screen. */}
+                  <div className="max-w-40 min-w-0 sm:max-w-none">
                     <p className="truncate text-sm font-medium group-hover:underline">{e.fullName}</p>
                     <p className="truncate text-xs text-muted-foreground">
                       {e.employeeCode} · {e.email}
@@ -80,12 +82,12 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
                   </div>
                 </Link>
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">{e.departmentName ?? "—"}</TableCell>
-              <TableCell className="text-sm">{e.designation}</TableCell>
-              <TableCell className="text-sm text-muted-foreground">
+              <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{e.departmentName ?? "—"}</TableCell>
+              <TableCell className="hidden text-sm sm:table-cell">{e.designation}</TableCell>
+              <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
                 {employmentTypeLabel[e.employmentType] ?? e.employmentType}
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
+              <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
                 {new Date(e.joinDate).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
               </TableCell>
               <TableCell>

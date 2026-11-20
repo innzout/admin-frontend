@@ -131,7 +131,7 @@ export function LedgerDialog({ entry, open, onOpenChange }: { entry: LedgerEntry
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{entry ? "Edit payment" : "Record payment"}</DialogTitle>
         </DialogHeader>

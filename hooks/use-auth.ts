@@ -16,8 +16,6 @@ export function useLogin() {
       }),
     onSuccess: (data) => {
       setSession({
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
         userId: data.user.id,
         name: data.user.name,
         username: data.user.username,

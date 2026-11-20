@@ -9,6 +9,7 @@ import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications 
 import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { timeAgo } from "@/lib/format";
+import { EmptyState } from "@/components/common/empty-state";
 
 const iconByType: Record<string, typeof Bell> = {
   employee: Users,
@@ -74,7 +75,7 @@ export default function NotificationsPage() {
             );
           })
         ) : (
-          <p className="py-12 text-center text-sm text-muted-foreground">No notifications yet.</p>
+          <EmptyState title="No notifications yet" hint="Approvals, new joiners and payroll updates will appear here." />
         )}
       </div>
     </div>

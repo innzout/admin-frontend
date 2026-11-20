@@ -1,8 +1,9 @@
 import type { Role } from "@/lib/types";
 
+// Tokens live only in httpOnly cookies set by the API, out of reach of page
+// scripts. What is kept here is the non-secret profile used to render the UI;
+// it says nothing about whether the cookies are still valid (the API decides).
 const KEYS = {
-  access: "innzout_access_token",
-  refresh: "innzout_refresh_token",
   name: "innzout_name",
   username: "innzout_username",
   email: "innzout_email",
@@ -18,27 +19,16 @@ export interface Session {
   role: Role | "";
 }
 
-export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(KEYS.access);
-}
-
-export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(KEYS.refresh);
-}
+/** Token keys from before the cookie switch; removed so no copy lingers. */
+const LEGACY_TOKEN_KEYS = ["innzout_access_token", "innzout_refresh_token"];
 
 export function setSession(params: {
-  accessToken: string;
-  refreshToken: string;
   userId: string;
   name: string;
   username: string;
   email: string;
   role: string;
 }) {
-  localStorage.setItem(KEYS.access, params.accessToken);
-  localStorage.setItem(KEYS.refresh, params.refreshToken);
   localStorage.setItem(KEYS.userId, params.userId);
   localStorage.setItem(KEYS.name, params.name);
   localStorage.setItem(KEYS.username, params.username);
@@ -46,13 +36,8 @@ export function setSession(params: {
   localStorage.setItem(KEYS.role, params.role);
 }
 
-/** Updates just the access token — used after a silent refresh. */
-export function setAccessToken(token: string) {
-  localStorage.setItem(KEYS.access, token);
-}
-
 export function clearSession() {
-  Object.values(KEYS).forEach((k) => localStorage.removeItem(k));
+  [...Object.values(KEYS), ...LEGACY_TOKEN_KEYS].forEach((k) => localStorage.removeItem(k));
 }
 
 export function readSession(): Session {
@@ -69,5 +54,7 @@ export function readSession(): Session {
 }
 
 export function isLoggedIn(): boolean {
-  return !!getAccessToken();
+  if (typeof window === "undefined") return false;
+  LEGACY_TOKEN_KEYS.forEach((k) => localStorage.removeItem(k));
+  return !!localStorage.getItem(KEYS.userId);
 }

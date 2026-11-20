@@ -20,6 +20,7 @@ import { useCompany, useUpdateCompany } from "@/hooks/use-settings";
 import { readSession } from "@/lib/session";
 import type { Company } from "@/lib/types";
 import { optionalEmail, optionalGstin, optionalIfsc, optionalPhone, optionalText, optionalUrl, requiredText, showApiError } from "@/lib/validation";
+import { digitsInput, phoneInput, upperCodeInput } from "@/lib/input-filters";
 
 const BANK_ACCOUNT_RE = /^\d{9,18}$/;
 const UPI_RE = /^[\w.-]{2,256}@[a-zA-Z]{2,64}$/;
@@ -133,9 +134,9 @@ export default function SettingsPage() {
                 <CardContent className="grid gap-4 sm:grid-cols-2">
                   <div className="sm:col-span-2">{field("name", "Company name", { maxLength: 150 })}</div>
                   {field("businessEmail", "Business email", { type: "email", maxLength: 254 })}
-                  {field("phone", "Phone", { type: "tel", maxLength: 16 })}
+                  {field("phone", "Phone", phoneInput)}
                   {field("website", "Website", { type: "url", placeholder: "https://innzout.com", maxLength: 254 })}
-                  {field("gstNumber", "GSTIN", { maxLength: 15, className: "uppercase" })}
+                  {field("gstNumber", "GSTIN", upperCodeInput(15))}
                 </CardContent>
               </Card>
 
@@ -162,8 +163,8 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-2">
                   {field("bankAccountName", "Account name", { maxLength: 150 })}
-                  {field("bankAccountNo", "Account number", { inputMode: "numeric", maxLength: 22 })}
-                  {field("bankIfsc", "IFSC", { maxLength: 11, className: "uppercase" })}
+                  {field("bankAccountNo", "Account number", digitsInput(18))}
+                  {field("bankIfsc", "IFSC", upperCodeInput(11))}
                   {field("upiId", "UPI ID", { maxLength: 100, placeholder: "innzout@upi" })}
                 </CardContent>
               </Card>

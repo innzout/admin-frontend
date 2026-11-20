@@ -11,12 +11,11 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { DecisionDialog } from "@/components/common/decision-dialog";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { ApplyOdDialog } from "@/components/od/apply-od-dialog";
+import { useDayActions } from "@/hooks/use-day-actions";
 import { attendanceStatusLabel, attendanceStatusTone, leaveRequestStatusTone } from "@/lib/status";
 import { useMe } from "@/hooks/use-auth";
 import {
   useAttendanceList,
-  useCheckIn,
-  useCheckOut,
   useEndBreak,
   useStartBreak,
   useTodayAttendance,
@@ -24,6 +23,7 @@ import {
 import { useCancelOd, useDecideOd, useOdRequests } from "@/hooks/use-od";
 import { ApiError } from "@/lib/api";
 import type { OdRequest } from "@/lib/types";
+import { EmptyState } from "@/components/common/empty-state";
 
 function fmtTime(iso?: string) {
   if (!iso) return "–";
@@ -43,8 +43,7 @@ export default function AttendancePage() {
   const { data: teamToday, isLoading: teamLoading } = useAttendanceList({ date: todayIso });
   const { data: odRequests } = useOdRequests();
 
-  const checkIn = useCheckIn();
-  const checkOut = useCheckOut();
+  const { doCheckIn, requestCheckOut, checkInPending, checkOutPending, confirmDialog } = useDayActions();
   const startBreak = useStartBreak();
   const endBreak = useEndBreak();
   const decideOd = useDecideOd();
@@ -61,16 +60,6 @@ export default function AttendancePage() {
   const canCheckIn = !today || !today.checkInAt;
   const canCheckOut = today?.checkInAt && !today.checkOutAt;
 
-  const doCheckIn = () =>
-    checkIn.mutate(false, {
-      onSuccess: () => toast.success("Checked in"),
-      onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not check in"),
-    });
-  const doCheckOut = () =>
-    checkOut.mutate(undefined, {
-      onSuccess: () => toast.success("Checked out"),
-      onError: (err) => toast.error(err instanceof ApiError ? err.message : "Could not check out"),
-    });
   const doStartBreak = () =>
     startBreak.mutate(undefined, {
       onSuccess: () => toast.success("Break started"),
@@ -130,6 +119,7 @@ export default function AttendancePage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {confirmDialog}
       <PageHeader title="Attendance" subtitle="Track daily check-in, breaks, and on-duty requests." />
 
       <div className="rounded-2xl bg-gradient-to-br from-green-600 to-green-500 p-6 text-white">
@@ -152,7 +142,7 @@ export default function AttendancePage() {
           {canCheckIn && (
             <Button
               className="rounded-full bg-white text-green-700 hover:bg-white/90"
-              disabled={checkIn.isPending}
+              disabled={checkInPending}
               onClick={doCheckIn}
             >
               Check In
@@ -161,8 +151,8 @@ export default function AttendancePage() {
           {canCheckOut && !onBreak && (
             <Button
               className="rounded-full bg-white text-green-700 hover:bg-white/90"
-              disabled={checkOut.isPending}
-              onClick={doCheckOut}
+              disabled={checkOutPending}
+              onClick={requestCheckOut}
             >
               Check Out
             </Button>
@@ -200,7 +190,7 @@ export default function AttendancePage() {
         </div>
         <div className="flex flex-col divide-y">
           {(odRequests ?? []).length === 0 && (
-            <div className="p-4 text-sm text-muted-foreground">No on-duty requests yet.</div>
+            <EmptyState className="py-8" title="No on-duty requests yet" hint="Requests to work off-site for a day appear here for approval." />
           )}
           {(odRequests ?? []).map((r) => (
             <div key={r.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -261,7 +251,7 @@ export default function AttendancePage() {
               <TableHead>Employee</TableHead>
               <TableHead>Check In</TableHead>
               <TableHead>Check Out</TableHead>
-              <TableHead>Hours</TableHead>
+              <TableHead className="hidden sm:table-cell">Hours</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -285,7 +275,7 @@ export default function AttendancePage() {
                 <TableCell className="font-medium">{a.employeeName}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{fmtTime(a.checkInAt)}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{fmtTime(a.checkOutAt)}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
                   {a.workMinutes != null ? `${Math.floor(a.workMinutes / 60)}h ${a.workMinutes % 60}m` : "–"}
                 </TableCell>
                 <TableCell>
