@@ -108,6 +108,8 @@ export interface Department {
 export interface UpdateDepartmentInput {
   name?: string;
   headEmployeeId?: string;
+  /** Remove the current head (omitting headEmployeeId leaves it unchanged). */
+  clearHead?: boolean;
 }
 
 export interface Company {

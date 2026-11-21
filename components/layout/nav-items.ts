@@ -21,6 +21,7 @@ import {
   FileText,
   UsersRound,
   KeyRound,
+  Building2,
 } from "lucide-react";
 
 export interface NavItem {
@@ -60,6 +61,7 @@ export const navSections: NavSection[] = [
     label: "People",
     items: [
       { label: "Employees", href: "/employees", icon: Users },
+      { label: "Departments", href: "/departments", icon: Building2 },
       { label: "Interns", href: "/interns", icon: GraduationCap },
       { label: "Attendance", href: "/attendance", icon: CalendarCheck, audience: "all" },
       { label: "Leave Management", href: "/leave", icon: DoorOpen, audience: "all" },

@@ -22,11 +22,12 @@ function toQuery(filters: EmployeeFilters): string {
   return params.toString();
 }
 
-export function useEmployees(filters: EmployeeFilters = {}) {
+export function useEmployees(filters: EmployeeFilters = {}, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: ["employees", filters],
     queryFn: () => api<EmployeeListResult>(`/api/v1/employees?${toQuery(filters)}`),
     placeholderData: (prev) => prev,
+    enabled,
   });
 }
 

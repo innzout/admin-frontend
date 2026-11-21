@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
-import { Search } from "lucide-react";
+import Link from "next/link";
+import { Building2, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/common/page-header";
 import { EmployeeTable } from "@/components/employees/employee-table";
 import { AddEmployeeDialog } from "@/components/employees/add-employee-dialog";
-import { ManageDepartmentsSheet } from "@/components/departments/manage-departments-sheet";
 import { useEmployees } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
 
@@ -45,7 +45,10 @@ export default function EmployeesPage() {
         subtitle={data ? `${data.total} total` : "Loading…"}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <ManageDepartmentsSheet />
+            <Button render={<Link href="/departments" />} variant="outline">
+              <Building2 className="size-4" />
+              Departments
+            </Button>
             <AddEmployeeDialog />
           </div>
         }

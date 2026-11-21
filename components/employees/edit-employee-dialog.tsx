@@ -126,16 +126,18 @@ export function EditEmployeeDialog({
         id: employee.id,
         input: {
           fullName: values.fullName,
-          phone: values.phone || undefined,
+          // Optional fields are always sent: "" tells the API to clear them
+          // (an omitted field would be left unchanged).
+          phone: values.phone ?? "",
           departmentId: values.departmentId || undefined,
           designation: values.designation,
           employmentType: values.employmentType,
           reportingManagerId:
-            values.reportingManagerId === NO_MANAGER
-              ? undefined
+            !values.reportingManagerId || values.reportingManagerId === NO_MANAGER
+              ? ""
               : values.reportingManagerId,
-          dob: values.dob || undefined,
-          address: values.address || undefined,
+          dob: values.dob ?? "",
+          address: values.address ?? "",
           status: values.status,
         },
       },
@@ -184,11 +186,13 @@ export function EditEmployeeDialog({
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="edit-phone">Phone</Label>
-                <Input id="edit-phone" {...phoneInput} {...register("phone")} />
+                <Input id="edit-phone" aria-invalid={!!errors.phone} {...phoneInput} {...register("phone")} />
+                {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="edit-dob">Date of birth</Label>
-                <Input id="edit-dob" type="date" {...register("dob")} />
+                <Input id="edit-dob" type="date" aria-invalid={!!errors.dob} {...register("dob")} />
+                {errors.dob && <p className="text-sm text-destructive">{errors.dob.message}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="edit-designation">Designation</Label>
