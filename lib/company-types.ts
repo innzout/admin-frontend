@@ -80,13 +80,63 @@ export interface Intern {
   mentorName?: string;
   startDate?: string;
   endDate?: string;
-  stipend: number;
+  /** Hidden from mentors outside management. */
+  stipend?: number;
   status: InternshipStatus;
-  certificateIssued: boolean;
+  /** The final evaluation score (0-100). */
   evaluationScore?: number;
+  certificateNumber?: string;
+  certificateIssuedAt?: string;
   notes?: string;
   openTasks: number;
   completedTasks: number;
+  /** What the viewer may do; decided by the API. */
+  can: { edit: boolean; evaluate: boolean; issueCertificate: boolean };
+}
+
+export interface InternListResult {
+  interns: Intern[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type EvaluationKind = "periodic" | "final";
+
+export interface InternEvaluation {
+  id: string;
+  kind: EvaluationKind;
+  periodStart: string;
+  periodEnd: string;
+  technical: number;
+  communication: number;
+  ownership: number;
+  learning: number;
+  score: number;
+  strengths?: string;
+  improvements?: string;
+  comments?: string;
+  evaluatorName?: string;
+  createdAt: string;
+}
+
+export interface InternEvaluationInput {
+  kind: EvaluationKind;
+  periodStart: string;
+  periodEnd: string;
+  technical: number;
+  communication: number;
+  ownership: number;
+  learning: number;
+  strengths?: string;
+  improvements?: string;
+  comments?: string;
+}
+
+export interface InternMentor {
+  id: string;
+  fullName: string;
+  role: string;
 }
 
 export interface InternInput {
@@ -97,8 +147,6 @@ export interface InternInput {
   endDate?: string;
   stipend?: number;
   status?: InternshipStatus;
-  certificateIssued?: boolean;
-  evaluationScore?: number;
   notes?: string;
 }
 

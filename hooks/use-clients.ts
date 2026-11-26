@@ -20,7 +20,7 @@ export interface ClientListResult {
   limit: number;
 }
 
-export function useClients(filters: ClientFilters = {}) {
+export function useClients(filters: ClientFilters = {}, { enabled = true }: { enabled?: boolean } = {}) {
   const params = new URLSearchParams();
   if (filters.status) params.set("status", filters.status);
   if (filters.search) params.set("search", filters.search);
@@ -32,6 +32,7 @@ export function useClients(filters: ClientFilters = {}) {
     queryKey: ["clients", filters],
     queryFn: () => api<ClientListResult>(`/api/v1/clients?${params.toString()}`),
     placeholderData: (prev) => prev,
+    enabled,
   });
 }
 

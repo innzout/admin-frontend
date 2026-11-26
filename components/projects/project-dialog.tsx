@@ -21,7 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateProject, useUpdateProject } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
 import { ApiError } from "@/lib/api";
-import type { Project } from "@/lib/types";
+import { seesCompanyRecords, type Project } from "@/lib/types";
+import { readSession } from "@/lib/session";
 import { requiredText, optionalDate, optionalText, endNotBeforeStart, LIMITS } from "@/lib/validation";
 
 const NO_CLIENT = "none";
@@ -50,7 +51,9 @@ export function ProjectDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const { data: clientsResult } = useClients({ limit: 100 });
+  // Team Leads run delivery only: no client list or budget (the API agrees).
+  const showCommercial = seesCompanyRecords(readSession().role);
+  const { data: clientsResult } = useClients({ limit: 100 }, { enabled: showCommercial });
   const clients = clientsResult?.clients ?? [];
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -82,7 +85,7 @@ export function ProjectDialog({
       clientId: values.clientId === NO_CLIENT ? undefined : values.clientId,
       startDate: values.startDate || undefined,
       deadline: values.deadline || undefined,
-      budget: values.budget ? Number(values.budget) : undefined,
+      budget: showCommercial && values.budget ? Number(values.budget) : undefined,
       description: values.description || undefined,
     };
     if (isEdit) {
@@ -123,6 +126,7 @@ export function ProjectDialog({
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
 
+          {showCommercial && (
           <div className="flex flex-col gap-1.5">
             <Label>Client</Label>
             <Controller
@@ -145,6 +149,7 @@ export function ProjectDialog({
               )}
             />
           </div>
+          )}
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
@@ -157,10 +162,12 @@ export function ProjectDialog({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pr-budget">Budget</Label>
-            <Input id="pr-budget" type="number" step="0.01" {...register("budget")} />
-          </div>
+          {showCommercial && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pr-budget">Budget</Label>
+              <Input id="pr-budget" type="number" step="0.01" {...register("budget")} />
+            </div>
+          )}
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="pr-description">Description</Label>

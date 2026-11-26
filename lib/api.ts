@@ -60,7 +60,10 @@ export async function api<T>(path: string, init?: RequestInit, _retried = false)
     }
     if (typeof window !== "undefined") {
       clearSession();
-      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+      // A full page load on purpose (not router.push): it also drops every
+      // cached query, so nothing from the lost session stays in memory.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
     }
     throw new ApiError(401, "unauthorized", "Session expired");
   }

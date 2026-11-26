@@ -26,6 +26,7 @@ import { formatInrFull } from "@/lib/format";
 import { ApiError } from "@/lib/api";
 import type { Invoice } from "@/lib/types";
 import { requiredSelect, requiredDate, percent, optionalText, endNotBeforeStart, LIMITS } from "@/lib/validation";
+import { localIsoDate } from "@/lib/dates";
 
 const NO_PROJECT = "none";
 
@@ -83,7 +84,7 @@ export function InvoiceDialog({
     reset({
       clientId: invoice?.clientId ?? "",
       projectId: invoice?.projectId ?? NO_PROJECT,
-      issueDate: invoice?.issueDate.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+      issueDate: invoice?.issueDate.slice(0, 10) ?? localIsoDate(),
       dueDate: invoice?.dueDate.slice(0, 10) ?? "",
       taxPercent: invoice?.taxPercent ?? 0,
       notes: invoice?.notes ?? "",

@@ -20,8 +20,10 @@ export interface InvoiceListResult {
   limit: number;
 }
 
+// Invoice payments and receivables feed the ledger (Payments page, dashboard).
 function invalidateInvoices(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["invoices"] });
+  queryClient.invalidateQueries({ queryKey: ["ledger"] });
 }
 
 export function useInvoices(filters: InvoiceFilters = {}) {

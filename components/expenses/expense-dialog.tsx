@@ -23,6 +23,7 @@ import { useProjects } from "@/hooks/use-projects";
 import { ApiError } from "@/lib/api";
 import type { Role } from "@/lib/types";
 import { requiredText, requiredSelect, amount, requiredDate, optionalUrl } from "@/lib/validation";
+import { localIsoDate } from "@/lib/dates";
 
 const SELF = "self";
 const NO_PROJECT = "none";
@@ -33,7 +34,7 @@ const schema = z.object({
   amount: amount("Amount"),
   employeeId: z.string(),
   projectId: z.string(),
-  expenseDate: requiredDate("Expense date").refine((v) => v <= new Date().toISOString().slice(0, 10), "Expense date can't be in the future"),
+  expenseDate: requiredDate("Expense date").refine((v) => v <= localIsoDate(), "Expense date can't be in the future"),
   receiptUrl: optionalUrl.optional(),
 });
 type FormValues = z.infer<typeof schema>;
@@ -61,7 +62,7 @@ export function ExpenseDialog({
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { employeeId: SELF, projectId: NO_PROJECT, expenseDate: new Date().toISOString().slice(0, 10) },
+    defaultValues: { employeeId: SELF, projectId: NO_PROJECT, expenseDate: localIsoDate() },
   });
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export function ExpenseDialog({
       amount: 0,
       employeeId: SELF,
       projectId: NO_PROJECT,
-      expenseDate: new Date().toISOString().slice(0, 10),
+      expenseDate: localIsoDate(),
       receiptUrl: "",
     });
   }, [open, reset]);

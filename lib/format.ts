@@ -15,6 +15,20 @@ export function timeAgo(iso: string): string {
   return days === 1 ? "Yesterday" : `${days} days ago`;
 }
 
+/** Worked time as "7h 30m" ("–" when unknown). */
+export function formatMinutes(minutes: number | undefined | null): string {
+  if (minutes == null) return "–";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+/** Clock time of an ISO timestamp, e.g. "09:42 am" ("–" when missing). */
+export function formatClock(iso: string | undefined | null): string {
+  if (!iso) return "–";
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: true });
+}
+
 /** Compact INR for KPI cards — lakh shorthand above ₹1L (e.g. ₹1.5L). */
 export function formatInr(amount: number): string {
   if (amount >= 100000) return `₹${(amount / 100000).toFixed(amount % 100000 === 0 ? 0 : 1)}L`;

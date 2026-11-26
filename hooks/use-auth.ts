@@ -6,8 +6,21 @@ import { api } from "@/lib/api";
 import { clearSession, isLoggedIn, setSession } from "@/lib/session";
 import type { AuthResponse, User } from "@/lib/types";
 
+/**
+ * Where to go after login: the page the session expired on (?next=), when it
+ * is a path on this site. Anything else (another origin, "//host", a
+ * backslash trick, the login page itself) falls back to the role home, so the
+ * parameter can't send people to another site.
+ */
+export function safeNextPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\") || /[\u0000-\u001f]/.test(raw)) return null;
+  if (raw === "/login" || raw.startsWith("/login?") || raw.startsWith("/login/")) return null;
+  return raw;
+}
+
 export function useLogin() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: { username: string; password: string }) =>
       api<AuthResponse>("/api/v1/auth/login", {
@@ -22,7 +35,11 @@ export function useLogin() {
         email: data.user.email,
         role: data.user.role,
       });
-      router.replace(data.user.role === "employee" || data.user.role === "intern" ? "/my-tasks" : "/dashboard");
+      // A previous login in this tab may have left its data in the cache.
+      queryClient.clear();
+      const home = data.user.role === "employee" || data.user.role === "intern" ? "/my-tasks" : "/dashboard";
+      // The (app) layout still bounces a page this role may not open.
+      router.replace(safeNextPath(new URLSearchParams(window.location.search).get("next")) ?? home);
     },
   });
 }

@@ -11,11 +11,20 @@ export interface ExpenseFilters {
   limit?: number;
 }
 
+/** Amount totals over every expense the filter matches, not just one page. */
+export interface ExpenseSummary {
+  total: number;
+  pending: number;
+  approved: number;
+  reimbursed: number;
+}
+
 export interface ExpenseListResult {
   expenses: Expense[];
   total: number;
   page: number;
   limit: number;
+  summary: ExpenseSummary;
 }
 
 function invalidateExpenses(queryClient: ReturnType<typeof useQueryClient>) {

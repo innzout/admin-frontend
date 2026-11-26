@@ -11,7 +11,8 @@ export const LIMITS = {
   name: 150,
   short: 200,
   text: 5000,
-  money: 10_000_000_000,
+  /** Largest amount the API accepts (its narrowest column is NUMERIC(12,2)). */
+  money: 9_999_999_999.99,
 } as const;
 
 const PHONE_RE = /^(\+91[\s-]?|0)?[6-9]\d{9}$/;
@@ -19,11 +20,18 @@ const GSTIN_RE = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 const PAN_RE = /^[A-Z]{5}\d{4}[A-Z]$/;
 const IFSC_RE = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 
-const trimmed = () => z.string().trim();
+/**
+ * A string field that the user may never have touched (undefined). Without an
+ * explicit message zod shows "Invalid input: expected string, received
+ * undefined", which must never reach a user.
+ */
+const text = (missing: string) => z.string({ error: missing });
+
+const trimmed = (missing = "This field is required") => text(missing).trim();
 
 /** Required free text, e.g. a person's or company's name. */
 export const requiredText = (label: string, max: number = LIMITS.name, min = 2) =>
-  trimmed()
+  trimmed(`${label} is required`)
     .min(1, `${label} is required`)
     .min(min, `${label} must be at least ${min} characters`)
     .max(max, `${label} must be at most ${max} characters`);
@@ -53,10 +61,10 @@ export const optionalIfsc = trimmed()
 export const optionalUrl = trimmed().refine((v) => v === "" || /^https?:\/\/\S+\.\S+/.test(v), "Enter a full URL starting with https://");
 
 /** Select whose value must be chosen. */
-export const requiredSelect = (label: string) => z.string().min(1, `Select ${label}`);
+export const requiredSelect = (label: string) => text(`Select ${label}`).min(1, `Select ${label}`);
 
 /** YYYY-MM-DD from <input type="date">. */
-export const requiredDate = (label: string) => z.string().min(1, `${label} is required`).regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date");
+export const requiredDate = (label: string) => text(`${label} is required`).min(1, `${label} is required`).regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date");
 export const optionalDate = z.string().refine((v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v), "Enter a valid date");
 
 /**
@@ -75,7 +83,7 @@ const numberInput = (label: string) =>
 export const amount = (label: string, { allowZero = false } = {}) =>
   numberInput(label)
     .refine((n) => (allowZero ? n >= 0 : n > 0), allowZero ? `${label} can't be negative` : `${label} must be more than 0`)
-    .refine((n) => n <= LIMITS.money, `${label} is too large`)
+    .refine((n) => n <= LIMITS.money, `${label} can be at most 9,999,999,999.99`)
     .refine((n) => Math.round(n * 100) === n * 100 || Math.abs(Math.round(n * 100) - n * 100) < 1e-6, "Use at most 2 decimal places");
 
 export const percent = (label: string) =>

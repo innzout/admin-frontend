@@ -2,18 +2,18 @@
 
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { NativeSelect } from "@/components/company/native-select";
 import { FormField } from "@/components/common/form-field";
-import { useSaveIntern } from "@/hooks/use-company";
-import { useEmployees } from "@/hooks/use-employees";
+import { useConfirm } from "@/components/common/use-confirm";
+import { useInternMentors, useSaveIntern } from "@/hooks/use-interns";
+import { roleLabel } from "@/lib/access";
 import type { Intern } from "@/lib/company-types";
 import { amount, endNotBeforeStart, optionalDate, optionalText, requiredDate, showApiError, LIMITS } from "@/lib/validation";
 
@@ -28,22 +28,12 @@ const schema = z
     endDate: optionalDate,
     stipend: amount("Stipend", { allowZero: true }),
     status: z.enum(STATUSES),
-    certificateIssued: z.boolean(),
-    // Empty input → NaN via valueAsNumber → treated as "not scored yet".
-    evaluationScore: z
-      .number()
-      .optional()
-      .transform((n) => (n === undefined || Number.isNaN(n) ? undefined : n))
-      .refine((n) => n === undefined || (Number.isInteger(n) && n >= 0 && n <= 100), "Score must be a whole number from 0 to 100"),
     notes: optionalText(LIMITS.text),
   })
   .superRefine(endNotBeforeStart("startDate", "endDate", "End date can't be before the start date"))
   .superRefine((v, ctx) => {
-    if (v.certificateIssued && v.status === "ongoing") {
-      ctx.addIssue({ code: "custom", path: ["certificateIssued"], message: "Issue the certificate after the internship is completed" });
-    }
-    if (v.status === "completed" && !v.endDate) {
-      ctx.addIssue({ code: "custom", path: ["endDate"], message: "Set the end date for a completed internship" });
+    if ((v.status === "completed" || v.status === "converted") && !v.endDate) {
+      ctx.addIssue({ code: "custom", path: ["endDate"], message: "Set the end date before completing the internship" });
     }
   });
 type FormInput = z.input<typeof schema>;
@@ -56,23 +46,21 @@ function toForm(intern: Intern): FormInput {
     mentorId: intern.mentorId ?? "",
     startDate: intern.startDate?.slice(0, 10) ?? intern.joinDate.slice(0, 10),
     endDate: intern.endDate?.slice(0, 10) ?? "",
-    stipend: intern.stipend,
+    stipend: intern.stipend ?? 0,
     status: intern.status,
-    certificateIssued: intern.certificateIssued,
-    evaluationScore: intern.evaluationScore ?? undefined,
     notes: intern.notes ?? "",
   };
 }
 
 export function InternDialog({ intern, open, onOpenChange }: { intern: Intern | null; open: boolean; onOpenChange: (o: boolean) => void }) {
   const save = useSaveIntern();
-  const { data: employees } = useEmployees({ status: "active", limit: 100 });
+  const { data: mentors } = useInternMentors(open);
+  const { confirm, confirmDialog } = useConfirm();
 
   const {
     register,
     handleSubmit,
     reset,
-    control,
     setError,
     formState: { errors, isDirty },
   } = useForm<FormInput, unknown, FormValues>({ resolver: zodResolver(schema) });
@@ -83,7 +71,7 @@ export function InternDialog({ intern, open, onOpenChange }: { intern: Intern | 
 
   if (!intern) return null;
 
-  const onSubmit = (values: FormValues) => {
+  const persist = (values: FormValues) => {
     save.mutate(
       { employeeId: intern.employeeId, input: values },
       {
@@ -96,7 +84,20 @@ export function InternDialog({ intern, open, onOpenChange }: { intern: Intern | 
     );
   };
 
+  // Converting changes their login role and employment type, so ask first.
+  const onSubmit = (values: FormValues) => {
+    if (values.status !== "converted" || intern.status === "converted") return persist(values);
+    confirm({
+      title: `Convert ${intern.fullName} to full-time?`,
+      description: "Their employment type becomes Full-time and their login changes from Intern to Employee. The internship stays in the history.",
+      confirmLabel: "Convert",
+      onConfirm: () => persist(values),
+    });
+  };
+
   return (
+    <>
+    {confirmDialog}
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
@@ -115,13 +116,11 @@ export function InternDialog({ intern, open, onOpenChange }: { intern: Intern | 
           <FormField label="Mentor" error={errors.mentorId?.message}>
             <NativeSelect {...register("mentorId")}>
               <option value="">No mentor</option>
-              {employees?.employees
-                .filter((e) => e.employmentType !== "intern")
-                .map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.fullName}
-                  </option>
-                ))}
+              {(mentors ?? []).map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.fullName} · {roleLabel(m.role)}
+                </option>
+              ))}
             </NativeSelect>
           </FormField>
           <FormField label="Monthly stipend (₹)" error={errors.stipend?.message}>
@@ -141,27 +140,7 @@ export function InternDialog({ intern, open, onOpenChange }: { intern: Intern | 
               <option value="converted">Converted to full-time</option>
             </NativeSelect>
           </FormField>
-          <FormField label="Evaluation score (0–100)" error={errors.evaluationScore?.message}>
-            <Input type="number" inputMode="numeric" min={0} max={100} step={1} {...register("evaluationScore", { valueAsNumber: true })} />
-          </FormField>
-          <div className="flex flex-col gap-1 sm:col-span-2">
-            <Controller
-              control={control}
-              name="certificateIssued"
-              render={({ field }) => (
-                <label className="flex items-center gap-3 text-sm font-medium">
-                  <Switch checked={!!field.value} onCheckedChange={(v) => field.onChange(!!v)} />
-                  Internship certificate issued
-                </label>
-              )}
-            />
-            {errors.certificateIssued && (
-              <p className="text-xs text-destructive" role="alert">
-                {errors.certificateIssued.message}
-              </p>
-            )}
-          </div>
-          <FormField label="Notes / feedback" className="sm:col-span-2" error={errors.notes?.message}>
+          <FormField label="Notes" className="sm:col-span-2" error={errors.notes?.message}>
             <Textarea rows={3} maxLength={LIMITS.text} {...register("notes")} />
           </FormField>
         </form>
@@ -175,5 +154,6 @@ export function InternDialog({ intern, open, onOpenChange }: { intern: Intern | 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

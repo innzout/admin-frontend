@@ -4,9 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { Task } from "@/lib/types";
 import type {
-  Intern,
-  InternInput,
-  InternSummary,
   Lead,
   LeadActivity,
   LeadInput,
@@ -74,29 +71,6 @@ export function useAddLeadActivity(id: string) {
   return useMutation({
     mutationFn: (note: string) => api<void>(`/api/v1/leads/${id}/activities`, json("POST", { note })),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads", "activities", id] }),
-  });
-}
-
-/* ---------- Interns ---------- */
-
-export function useInterns(status?: string) {
-  return useQuery({
-    queryKey: ["interns", status],
-    queryFn: () => api<{ interns: Intern[] }>(`/api/v1/interns?${qs({ status })}`).then((r) => r.interns),
-  });
-}
-export function useInternSummary() {
-  return useQuery({ queryKey: ["interns", "summary"], queryFn: () => api<InternSummary>("/api/v1/interns/summary") });
-}
-export function useSaveIntern() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ employeeId, input }: { employeeId: string; input: InternInput }) =>
-      api<{ intern: Intern }>(`/api/v1/interns/${employeeId}`, json("PUT", input)).then((r) => r.intern),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["interns"] });
-      qc.invalidateQueries({ queryKey: ["employees"] });
-    },
   });
 }
 

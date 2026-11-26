@@ -20,8 +20,10 @@ import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { MilestoneInput, TimelineEvent } from "@/lib/company-types";
 import { useConfirm } from "@/components/common/use-confirm";
+import { localIsoDate } from "@/lib/dates";
+import { QueryError } from "@/components/common/query-error";
 
-const iso = (d: Date) => d.toISOString().slice(0, 10);
+const iso = (d: Date) => localIsoDate(d);
 const addMonths = (n: number) => {
   const d = new Date();
   d.setMonth(d.getMonth() + n);
@@ -44,7 +46,7 @@ export default function TimelinePage() {
   const [to, setTo] = useState(addMonths(3));
   const [projectId, setProjectId] = useState("");
   const [hideTasks, setHideTasks] = useState(false);
-  const { data: events, isLoading } = useTimeline({ from, to, projectId: projectId || undefined });
+  const { data: events, isLoading, isError: eventsFailed, refetch: eventsRetry, isFetching: eventsRetrying } = useTimeline({ from, to, projectId: projectId || undefined });
   const { data: projects } = useProjects({ limit: 100 });
   const save = useSaveMilestone();
   const del = useDeleteMilestone();
@@ -127,7 +129,9 @@ export default function TimelinePage() {
         </label>
       </div>
 
-      {isLoading ? (
+      {eventsFailed && !events ? (
+        <QueryError what="the timeline" onRetry={() => eventsRetry()} retrying={eventsRetrying} />
+      ) : isLoading ? (
         <Skeleton className="h-96 rounded-xl" />
       ) : grouped.length === 0 ? (
         <p className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">Nothing scheduled in this range.</p>

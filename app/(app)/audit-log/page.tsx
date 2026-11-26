@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ROLES, roleLabel } from "@/lib/access";
 import { Download, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -17,12 +18,12 @@ import { useMe } from "@/hooks/use-auth";
 import { auditCsv, describeAction, formatAuditTime } from "@/lib/audit";
 import type { StatusTone } from "@/components/common/status-badge";
 import type { AuditLogEntry } from "@/lib/types";
+import { localIsoDate } from "@/lib/dates";
 
 const PAGE_SIZE = 25;
 /** The API caps one page at 200 rows; export walks pages up to this many rows. */
 const EXPORT_PAGE_SIZE = 200;
 const EXPORT_MAX_ROWS = 5000;
-const ROLES = ["admin", "hr", "manager", "employee", "intern"];
 
 function statusTone(code: number): StatusTone {
   if (code >= 500) return "danger";
@@ -69,7 +70,7 @@ export default function AuditLogPage() {
       const url = URL.createObjectURL(new Blob([auditCsv(all)], { type: "text/csv;charset=utf-8" }));
       const a = document.createElement("a");
       a.href = url;
-      a.download = `innzout-activity-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `innzout-activity-${localIsoDate()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(`Exported ${all.length} row${all.length === 1 ? "" : "s"}${all.length >= EXPORT_MAX_ROWS ? ` (first ${EXPORT_MAX_ROWS})` : ""}`);
@@ -97,8 +98,8 @@ export default function AuditLogPage() {
         <NativeSelect aria-label="Role" className="w-full sm:w-36" value={filters.role ?? ""} onChange={(e) => set({ role: e.target.value || undefined })}>
           <option value="">All roles</option>
           {ROLES.map((r) => (
-            <option key={r} value={r} className="capitalize">
-              {r}
+            <option key={r.role} value={r.role}>
+              {r.label}
             </option>
           ))}
         </NativeSelect>
@@ -168,7 +169,7 @@ export default function AuditLogPage() {
                   <TableCell className="text-sm whitespace-nowrap text-muted-foreground">{formatAuditTime(e.createdAt)}</TableCell>
                   <TableCell>
                     <p className="text-sm font-medium">{e.actorName ?? "System"}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{e.actorRole ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">{e.actorRole ? roleLabel(e.actorRole) : "—"}</p>
                   </TableCell>
                   <TableCell className="max-w-xs" title={e.path.replace(/^\/api\/v1/, "")}>
                     <p className="text-sm">{describeAction(e.method, e.path)}</p>

@@ -70,6 +70,35 @@ export function useUpdateTaskStatus() {
   });
 }
 
+/** One task, refreshed whenever any task changes (shares the "tasks" key). */
+export function useTask(id: string | undefined) {
+  return useQuery({
+    queryKey: ["tasks", "detail", id],
+    queryFn: () => api<{ task: Task }>(`/api/v1/tasks/${id}`).then((r) => r.task),
+    enabled: !!id,
+  });
+}
+
+/** The assignee sends their work for review, optionally with a link and a note. */
+export function useSubmitTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, link, note }: { id: string; link?: string; note?: string }) =>
+      api<{ task: Task }>(`/api/v1/tasks/${id}/submit`, { method: "POST", body: JSON.stringify({ link, note }) }).then((r) => r.task),
+    onSuccess: () => invalidateTasks(queryClient),
+  });
+}
+
+/** A lead approves the work or sends it back with feedback. */
+export function useReviewTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, decision, note }: { id: string; decision: "approve" | "changes"; note?: string }) =>
+      api<{ task: Task }>(`/api/v1/tasks/${id}/review`, { method: "POST", body: JSON.stringify({ decision, note }) }).then((r) => r.task),
+    onSuccess: () => invalidateTasks(queryClient),
+  });
+}
+
 export function useDeleteTask() {
   const queryClient = useQueryClient();
   return useMutation({

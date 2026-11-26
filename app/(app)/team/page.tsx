@@ -10,28 +10,46 @@ import { SearchInput } from "@/components/common/search-input";
 import { AvatarInitials } from "@/components/common/avatar-initials";
 import { StatusBadge } from "@/components/common/status-badge";
 import { TaskDialog } from "@/components/tasks/task-dialog";
-import { useTasks, useTeamLoad, type MemberLoad } from "@/hooks/use-tasks";
+import { TaskPanel } from "@/components/tasks/task-panel";
+import type { Task } from "@/lib/types";
+import { useTask, useTasks, useTeamLoad, type MemberLoad } from "@/hooks/use-tasks";
+import { ClipboardCheck } from "lucide-react";
 import { taskStatusLabel, taskStatusTone } from "@/lib/status";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { localIsoDate } from "@/lib/dates";
 
 /** Days without any task update before someone is flagged as possibly stuck. */
 const STALE_DAYS = 3;
 const MEMBER_TASK_LIMIT = 50;
+/** Review queue size shown at once; it is oldest-first, so nothing waits unseen. */
+const REVIEW_QUEUE_LIMIT = 50;
 const OPEN_STATUSES = new Set(["new", "in_progress", "in_review"]);
 
-const isStale = (m: MemberLoad) =>
-  m.open > 0 && (!m.lastActivityAt || Date.now() - Date.parse(m.lastActivityAt) > STALE_DAYS * 86_400_000);
+const isStale = (m: MemberLoad) => m.open > 0 && (!m.lastActivityAt || Date.now() - Date.parse(m.lastActivityAt) > STALE_DAYS * 86_400_000);
 
 export default function TeamPage() {
   const { data: members, isLoading, isError, refetch } = useTeamLoad();
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [assignTo, setAssignTo] = useState<string | null>(null);
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const { data: queue } = useTasks({
+    status: "in_review",
+    sort: "submittedAt",
+    dir: "asc",
+    limit: REVIEW_QUEUE_LIMIT,
+  });
+  const reviewTasks = queue?.tasks ?? [];
 
   const list = (members ?? []).filter((m) => m.fullName.toLowerCase().includes(search.trim().toLowerCase()));
   const totals = (members ?? []).reduce(
-    (t, m) => ({ open: t.open + m.open, review: t.review + m.inReview, overdue: t.overdue + m.overdue, idle: t.idle + (m.open === 0 ? 1 : 0) }),
+    (t, m) => ({
+      open: t.open + m.open,
+      review: t.review + m.inReview,
+      overdue: t.overdue + m.overdue,
+      idle: t.idle + (m.open === 0 ? 1 : 0),
+    }),
     { open: 0, review: 0, overdue: 0, idle: 0 },
   );
 
@@ -39,7 +57,7 @@ export default function TeamPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Team Board"
-        subtitle="Who is working on what. Assign tasks and spot overdue or stuck work."
+        subtitle="Assign work, review what's submitted, and spot late or stuck tasks."
         action={
           <Button className="rounded-full" onClick={() => setAssignTo("")}>
             <Plus className="size-4" /> Assign task
@@ -53,6 +71,8 @@ export default function TeamPage() {
         <Stat label="Overdue" value={totals.overdue} tone={totals.overdue ? "danger" : undefined} />
         <Stat label="People with no open task" value={totals.idle} />
       </div>
+
+      <ReviewQueue tasks={reviewTasks} onOpen={(t) => setOpenTaskId(t.id)} />
 
       <SearchInput value={search} onChange={setSearch} placeholder="Search people…" className="w-full sm:w-72" />
 
@@ -72,7 +92,9 @@ export default function TeamPage() {
       ) : list.length === 0 ? (
         <Card className="items-center gap-2 py-12 text-center">
           <UsersRound className="size-9 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">{search ? "No one matches that search." : "No active employees or interns yet. Add them under People."}</p>
+          <p className="text-sm text-muted-foreground">
+            {search ? "No one matches that search." : "No active employees or interns yet. Add them under People."}
+          </p>
         </Card>
       ) : (
         <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -118,36 +140,94 @@ export default function TeamPage() {
                   {expanded === m.employeeId ? "Hide tasks" : `Show ${m.open} open task${m.open === 1 ? "" : "s"}`}
                 </button>
               )}
-              {expanded === m.employeeId && <MemberTasks employeeId={m.employeeId} />}
+              {expanded === m.employeeId && <MemberTasks employeeId={m.employeeId} onOpen={(t) => setOpenTaskId(t.id)} />}
             </Card>
           ))}
         </div>
       )}
 
-      <TaskDialog task={null} defaultAssigneeId={assignTo || undefined} open={assignTo !== null} onOpenChange={(o) => !o && setAssignTo(null)} />
+      <TaskDialog
+        task={null}
+        defaultAssigneeId={assignTo || undefined}
+        open={assignTo !== null}
+        onOpenChange={(o) => !o && setAssignTo(null)}
+      />
+      <OpenTask taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
     </div>
   );
 }
 
-function MemberTasks({ employeeId }: { employeeId: string }) {
-  const { data, isLoading } = useTasks({ assigneeId: employeeId, sort: "dueDate", dir: "asc", limit: MEMBER_TASK_LIMIT });
+/** Work submitted for review, oldest first, each opening the review panel. */
+function ReviewQueue({ tasks, onOpen }: { tasks: Task[]; onOpen: (t: Task) => void }) {
+  if (tasks.length === 0) return null;
+  const today = localIsoDate();
+  return (
+    <Card className="gap-3 px-4 py-4">
+      <div className="flex items-center gap-2">
+        <ClipboardCheck className="size-4 text-primary" />
+        <p className="font-medium">Waiting for your review</p>
+        <span className="text-sm text-muted-foreground">({tasks.length})</span>
+      </div>
+      <ul className="flex flex-col divide-y rounded-lg border">
+        {tasks.map((t) => {
+          const late = !!t.dueDate && t.dueDate.slice(0, 10) < today;
+          return (
+            <li key={t.id} className="flex items-center gap-3 px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{t.title}</p>
+                <p className={cn("truncate text-xs", late ? "text-destructive" : "text-muted-foreground")}>
+                  {t.assigneeName ?? "Unassigned"}
+                  {t.submittedAt && ` · submitted ${timeAgo(t.submittedAt)}`}
+                  {t.dueDate && ` · due ${t.dueDate.slice(0, 10)}`}
+                </p>
+              </div>
+              <Button size="sm" onClick={() => onOpen(t)}>
+                Review
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
+
+/** The review panel for one task, always rendered from fresh data. */
+function OpenTask({ taskId, onClose }: { taskId: string | null; onClose: () => void }) {
+  const { data } = useTask(taskId ?? undefined);
+  return <TaskPanel task={taskId ? (data ?? null) : null} mode="reviewer" onClose={onClose} />;
+}
+
+function MemberTasks({ employeeId, onOpen }: { employeeId: string; onOpen: (t: Task) => void }) {
+  const { data, isLoading } = useTasks({
+    assigneeId: employeeId,
+    sort: "dueDate",
+    dir: "asc",
+    limit: MEMBER_TASK_LIMIT,
+  });
   if (isLoading) return <Skeleton className="h-16 w-full" />;
   const open = (data?.tasks ?? []).filter((t) => OPEN_STATUSES.has(t.status));
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localIsoDate();
   return (
     <ul className="flex flex-col divide-y rounded-lg border">
       {open.map((t) => {
         const overdue = !!t.dueDate && t.dueDate.slice(0, 10) < today;
         return (
-          <li key={t.id} className="flex items-center gap-2 px-3 py-2">
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm">{t.title}</p>
-              <p className={cn("truncate text-xs", overdue ? "text-destructive" : "text-muted-foreground")}>
-                {t.projectName}
-                {t.dueDate && ` · due ${t.dueDate.slice(0, 10)}`}
-              </p>
-            </div>
-            <StatusBadge tone={taskStatusTone[t.status]}>{taskStatusLabel[t.status]}</StatusBadge>
+          <li key={t.id}>
+            <button
+              type="button"
+              onClick={() => onOpen(t)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-muted/50"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm">{t.title}</p>
+                <p className={cn("truncate text-xs", overdue ? "text-destructive" : "text-muted-foreground")}>
+                  {t.projectName}
+                  {t.dueDate && ` · due ${t.dueDate.slice(0, 10)}`}
+                </p>
+              </div>
+              <StatusBadge tone={taskStatusTone[t.status]}>{taskStatusLabel[t.status]}</StatusBadge>
+            </button>
           </li>
         );
       })}
@@ -159,14 +239,28 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: "in
   return (
     <Card className="gap-0.5 px-4 py-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={cn("font-heading text-2xl font-bold tabular-nums", tone === "danger" && "text-destructive", tone === "info" && "text-primary")}>{value}</p>
+      <p
+        className={cn(
+          "font-heading text-2xl font-bold tabular-nums",
+          tone === "danger" && "text-destructive",
+          tone === "info" && "text-primary",
+        )}
+      >
+        {value}
+      </p>
     </Card>
   );
 }
 
 function Count({ label, value, highlight }: { label: string; value: number; highlight?: "info" | "danger" }) {
   return (
-    <div className={cn("rounded-lg bg-muted/60 py-1.5", highlight === "danger" && "bg-destructive/10 text-destructive", highlight === "info" && "bg-primary/10 text-primary")}>
+    <div
+      className={cn(
+        "rounded-lg bg-muted/60 py-1.5",
+        highlight === "danger" && "bg-destructive/10 text-destructive",
+        highlight === "info" && "bg-primary/10 text-primary",
+      )}
+    >
       <dd className="font-heading text-lg leading-tight font-bold tabular-nums">{value}</dd>
       <dt className="text-[11px] text-muted-foreground">{label}</dt>
     </div>

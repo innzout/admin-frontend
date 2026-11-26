@@ -16,16 +16,21 @@ import { invoiceStatusTone } from "@/lib/status";
 import { formatInrFull } from "@/lib/format";
 import { ApiError } from "@/lib/api";
 import { useConfirm } from "@/components/common/use-confirm";
+import { RecordLoadError } from "@/components/common/query-error";
 
 export default function InvoiceDetailPage() {
   const params = useParams<{ id: string }>();
-  const { data: invoice, isLoading } = useInvoice(params.id);
+  const { data: invoice, isLoading, isError, error, refetch } = useInvoice(params.id);
   const sendInvoice = useSendInvoice();
   const { confirm, confirmDialog } = useConfirm();
 
   const [editOpen, setEditOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+
+  if (isError && !invoice) {
+    return <RecordLoadError error={error} what="invoice" backHref="/billing" backLabel="Back to billing" onRetry={() => refetch()} />;
+  }
 
   if (isLoading || !invoice) {
     return (

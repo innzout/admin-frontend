@@ -13,6 +13,7 @@ import { EmployeeTable } from "@/components/employees/employee-table";
 import { AddEmployeeDialog } from "@/components/employees/add-employee-dialog";
 import { useEmployees } from "@/hooks/use-employees";
 import { useDepartments } from "@/hooks/use-departments";
+import { QueryError } from "@/components/common/query-error";
 
 const PAGE_SIZE = 20;
 
@@ -28,7 +29,7 @@ export default function EmployeesPage() {
   }, 300);
 
   const { data: departments } = useDepartments();
-  const { data, isLoading, isPlaceholderData } = useEmployees({
+  const { data, isLoading, isPlaceholderData, isError, refetch, isFetching } = useEmployees({
     search: search || undefined,
     departmentId: departmentId || undefined,
     status: status || undefined,
@@ -104,7 +105,11 @@ export default function EmployeesPage() {
           </div>
 
           <div className={isPlaceholderData ? "opacity-60 transition-opacity" : "transition-opacity"}>
-            <EmployeeTable employees={data?.employees ?? []} loading={isLoading} />
+            {isError && !data ? (
+              <QueryError what="employees" onRetry={() => refetch()} retrying={isFetching} />
+            ) : (
+              <EmployeeTable employees={data?.employees ?? []} loading={isLoading} />
+            )}
           </div>
 
           {data && totalPages > 1 && (

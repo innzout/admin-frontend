@@ -55,6 +55,7 @@ import { useInvoices } from "@/hooks/use-invoices";
 import { invoiceStatusTone } from "@/lib/status";
 import { EmployeeDashboard } from "@/components/dashboard/employee-dashboard";
 import { AttentionStrip } from "@/components/dashboard/attention-strip";
+import { localIsoDate } from "@/lib/dates";
 
 const STAGE_COLORS = ["#1565c0", "#42a5f5", "#16a34a", "#fb923c", "#a855f7", "#ef4444", "#64748b"];
 
@@ -80,8 +81,8 @@ export default function DashboardPage() {
 function CompanyDashboard({ session }: { session: Session }) {
   const companyName = useCompanyName() || "your company";
   const { data: employeePage } = useEmployees({ limit: 1 });
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const { data: todayAttendance } = useAttendanceList({ date: todayIso });
+  const todayIso = localIsoDate();
+  const { data: todayAttendance } = useAttendanceList({ date: todayIso, limit: 1 });
   const { data: clientsResult } = useClients({ limit: 100 });
   const { data: projectsResult } = useProjects({ limit: 100 });
   const { data: taskResult } = useTasks({ limit: 100 });
@@ -116,7 +117,7 @@ function CompanyDashboard({ session }: { session: Session }) {
     .map((st, i) => ({ name: st.stage.replace(/_/g, " "), value: st.count, color: STAGE_COLORS[i % STAGE_COLORS.length] }));
   const hasCashFlow = monthly.some((m) => m.in > 0 || m.out > 0);
   const openTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "cancelled");
-  const onLeaveToday = (todayAttendance ?? []).filter((a) => a.status === "on_leave").length;
+  const onLeaveToday = todayAttendance?.summary.onLeave ?? 0;
 
   return (
     <div className="flex flex-col gap-5">

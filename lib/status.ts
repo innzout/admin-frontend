@@ -85,10 +85,10 @@ export const taskStatusTone: Record<TaskStatus, StatusTone> = {
 };
 
 export const taskStatusLabel: Record<TaskStatus, string> = {
-  new: "New",
+  new: "Not started",
   in_progress: "In progress",
-  in_review: "In review",
-  completed: "Completed",
+  in_review: "Waiting for review",
+  completed: "Done",
   cancelled: "Cancelled",
 };
 

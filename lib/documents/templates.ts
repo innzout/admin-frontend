@@ -1,5 +1,6 @@
 import type { Client, Company, Employee, Invoice } from "@/lib/types";
 import type { Block, DocType, DocumentContent, LineItem } from "@/lib/documents/types";
+import { localIsoDate } from "@/lib/dates";
 
 // Starting content for each document type, taken from the INNZOUT Word
 // templates (Docs/Letterhead/Innzout Design System). Builders fill in what the
@@ -44,7 +45,7 @@ export function longDate(iso?: string): string {
 function addDays(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00");
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return localIsoDate(d);
 }
 
 const companyName = (ctx: { company?: Company }) => ctx.company?.name ?? "Innzout Technologies";

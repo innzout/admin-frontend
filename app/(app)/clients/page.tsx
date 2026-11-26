@@ -17,13 +17,14 @@ import { clientStatusTone } from "@/lib/status";
 import { ApiError } from "@/lib/api";
 import type { Client } from "@/lib/types";
 import { EmptyState } from "@/components/common/empty-state";
+import { QueryError } from "@/components/common/query-error";
 
 const PAGE_SIZE = 10;
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useClients({ search: search || undefined, page, limit: PAGE_SIZE });
+  const { data, isLoading, isError: dataFailed, refetch: dataRetry, isFetching: dataRetrying } = useClients({ search: search || undefined, page, limit: PAGE_SIZE });
   const deleteClient = useDeleteClient();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -78,8 +79,9 @@ export default function ClientsPage() {
       />
 
       <div className="flex flex-col gap-3">
+        {dataFailed && !data && <QueryError what="clients" onRetry={() => dataRetry()} retrying={dataRetrying} />}
         {isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-        {!isLoading && clients.length === 0 && (
+        {data && clients.length === 0 && (
           <EmptyState className="rounded-xl border bg-card" title="No clients yet" hint="Add a client, or convert a won lead, to start tracking projects and invoices for them." />
         )}
         {clients.map((c) => (

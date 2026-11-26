@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { timeAgo } from "@/lib/format";
 import { EmptyState } from "@/components/common/empty-state";
+import { QueryError } from "@/components/common/query-error";
 
 const iconByType: Record<string, typeof Bell> = {
   employee: Users,
@@ -18,7 +19,7 @@ const iconByType: Record<string, typeof Bell> = {
 };
 
 export default function NotificationsPage() {
-  const { data: notifications, isLoading } = useNotifications();
+  const { data: notifications, isLoading, isError: notificationsFailed, refetch: notificationsRetry, isFetching: notificationsRetrying } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 
@@ -44,7 +45,9 @@ export default function NotificationsPage() {
       />
 
       <div className="flex flex-col divide-y rounded-xl border bg-card">
-        {isLoading ? (
+        {notificationsFailed && !notifications ? (
+        <QueryError what="notifications" onRetry={() => notificationsRetry()} retrying={notificationsRetrying} />
+      ) : isLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="p-4">
               <Skeleton className="h-10 w-full" />

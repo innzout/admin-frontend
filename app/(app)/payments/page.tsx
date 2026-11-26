@@ -19,13 +19,14 @@ import { useDeleteLedgerEntry, useLedger, useLedgerSummary } from "@/hooks/use-c
 import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { categoryLabel, inr, type LedgerEntry, paymentMethodLabel } from "@/lib/company-types";
+import { QueryError } from "@/components/common/query-error";
 
 export default function PaymentsPage() {
   const [direction, setDirection] = useState<"" | "in" | "out">("");
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const { data: entries, isLoading } = useLedger({ direction: direction || undefined, search: search || undefined, from: from || undefined, to: to || undefined });
+  const { data: entries, isLoading, isError: entriesFailed, refetch: entriesRetry, isFetching: entriesRetrying } = useLedger({ direction: direction || undefined, search: search || undefined, from: from || undefined, to: to || undefined });
   const { data: summary } = useLedgerSummary();
   const del = useDeleteLedgerEntry();
   const [open, setOpen] = useState(false);
@@ -126,7 +127,9 @@ export default function PaymentsPage() {
         <Input type="date" className="w-40" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To" />
       </div>
 
-      {isLoading ? (
+      {entriesFailed && !entries ? (
+        <QueryError what="payments" onRetry={() => entriesRetry()} retrying={entriesRetrying} />
+      ) : isLoading ? (
         <Skeleton className="h-64 rounded-xl" />
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">

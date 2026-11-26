@@ -1,7 +1,14 @@
-export type Role = "admin" | "hr" | "manager" | "employee" | "intern";
+export type Role = "admin" | "hr" | "manager" | "team_lead" | "employee" | "intern";
 
 /** Plain staff logins — see only their own tasks, attendance and leave. */
 export const isStaffRole = (role: string | undefined) => role === "employee" || role === "intern";
+
+/**
+ * Roles that see company records: CRM, finance, budgets, colleagues' private
+ * fields. Mirrors middleware.SeesCompanyRecords; Team Leads are excluded.
+ */
+export const seesCompanyRecords = (role: string | undefined) =>
+  role === "admin" || role === "hr" || role === "manager";
 
 /** A portal login as listed on the Roles & Access screen. */
 export interface Login {
@@ -225,8 +232,59 @@ export interface AttendanceRecord {
   status: AttendanceStatus;
   isLate: boolean;
   source: "self" | "system";
+  /** Times were fixed through an approved correction request. */
+  corrected: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export type CorrectionStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+/** A missed-punch correction request. */
+export interface AttendanceCorrection {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  date: string;
+  checkInAt?: string;
+  checkOutAt?: string;
+  reason: string;
+  status: CorrectionStatus;
+  approverName?: string;
+  decisionNote?: string;
+  decidedAt?: string;
+  createdAt: string;
+  /** The viewer may approve or reject it. */
+  canDecide: boolean;
+}
+
+export interface CorrectionInput {
+  date: string;
+  checkIn?: string;
+  checkOut?: string;
+  reason: string;
+}
+
+/** Totals for the whole filtered range, not just the current page. */
+export interface AttendanceSummary {
+  days: number;
+  present: number;
+  remote: number;
+  halfDay: number;
+  onLeave: number;
+  absent: number;
+  onDuty: number;
+  late: number;
+  missedCheckout: number;
+  workMinutes: number;
+}
+
+export interface AttendanceListResult {
+  records: AttendanceRecord[];
+  total: number;
+  page: number;
+  limit: number;
+  summary: AttendanceSummary;
 }
 
 export type OdRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
@@ -436,9 +494,17 @@ export interface Task {
   priority: TaskPriority;
   status: TaskStatus;
   dueDate?: string;
+  /** Link the assignee attached when submitting for review. */
+  reviewLink?: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+  reviewerName?: string;
+  createdByName?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type TaskHistoryKind = "comment" | "submitted" | "approved" | "changes_requested";
 
 export interface CreateTaskInput {
   projectId: string;
@@ -463,6 +529,7 @@ export interface TaskComment {
   authorId?: string;
   authorName?: string;
   comment: string;
+  kind: TaskHistoryKind;
   createdAt: string;
 }
 

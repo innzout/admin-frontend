@@ -17,8 +17,9 @@ import { useProjects } from "@/hooks/use-projects";
 import { cn } from "@/lib/utils";
 import { LEDGER_CATEGORIES, PAYMENT_METHODS, paymentMethodLabel, type Direction, type LedgerEntry } from "@/lib/company-types";
 import { amount, optionalText, requiredDate, requiredSelect, showApiError, LIMITS } from "@/lib/validation";
+import { localIsoDate } from "@/lib/dates";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localIsoDate();
 /** Furthest a payment may be dated ahead — catches year typos like 2062. */
 const MAX_FUTURE_DAYS = 31;
 
@@ -38,7 +39,7 @@ const schema = z
   .superRefine((v, ctx) => {
     const limit = new Date();
     limit.setDate(limit.getDate() + MAX_FUTURE_DAYS);
-    if (v.date > limit.toISOString().slice(0, 10)) {
+    if (v.date > localIsoDate(limit)) {
       ctx.addIssue({ code: "custom", path: ["date"], message: "Date is too far in the future" });
     }
     if (v.direction === "out" && !v.party) {

@@ -26,8 +26,10 @@ export interface LeaveRequestFilters {
   status?: string;
 }
 
+// Approving or cancelling leave rewrites attendance days, so both refresh.
 function invalidateLeave(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["leave"] });
+  queryClient.invalidateQueries({ queryKey: ["attendance"] });
 }
 
 export function useLeaveRequests(filters: LeaveRequestFilters = {}) {

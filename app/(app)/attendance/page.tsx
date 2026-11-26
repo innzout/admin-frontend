@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Briefcase, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { DecisionDialog } from "@/components/common/decision-dialog";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { ApplyOdDialog } from "@/components/od/apply-od-dialog";
+import { AttendanceHistory } from "@/components/attendance/attendance-history";
+import { CorrectionsPanel } from "@/components/attendance/corrections-panel";
 import { useDayActions } from "@/hooks/use-day-actions";
 import { attendanceStatusLabel, attendanceStatusTone, leaveRequestStatusTone } from "@/lib/status";
 import { useMe } from "@/hooks/use-auth";
@@ -24,11 +26,13 @@ import { useCancelOd, useDecideOd, useOdRequests } from "@/hooks/use-od";
 import { ApiError } from "@/lib/api";
 import type { OdRequest } from "@/lib/types";
 import { EmptyState } from "@/components/common/empty-state";
+import { localIsoDate } from "@/lib/dates";
+import { formatClock } from "@/lib/format";
+import { RequestDetails } from "@/components/common/request-details";
 
-function fmtTime(iso?: string) {
-  if (!iso) return "–";
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: true });
-}
+/** Today's list shows the whole company on one page (the API maximum). */
+const TODAY_LIMIT = 200;
+
 
 export default function AttendancePage() {
   const { data: me } = useMe();
@@ -38,9 +42,12 @@ export default function AttendancePage() {
     return () => clearInterval(id);
   }, []);
 
-  const todayIso = now.toISOString().slice(0, 10);
+  const todayIso = localIsoDate(now);
   const { data: today, isLoading: todayLoading } = useTodayAttendance();
-  const { data: teamToday, isLoading: teamLoading } = useAttendanceList({ date: todayIso });
+  // Totals come from the server, so they stay right however many people there are.
+  const { data: teamTodayResult, isLoading: teamLoading } = useAttendanceList({ date: todayIso, limit: TODAY_LIMIT });
+  const teamToday = teamTodayResult?.records ?? [];
+  const todaySummary = teamTodayResult?.summary;
   const { data: odRequests } = useOdRequests();
 
   const { doCheckIn, requestCheckOut, checkInPending, checkOutPending, confirmDialog } = useDayActions();
@@ -110,10 +117,6 @@ export default function AttendancePage() {
     });
   };
 
-  const counts = (teamToday ?? []).reduce<Record<string, number>>((acc, a) => {
-    acc[a.status] = (acc[a.status] ?? 0) + 1;
-    return acc;
-  }, {});
 
   const pendingOd = (odRequests ?? []).filter((r) => r.status === "pending");
 
@@ -133,9 +136,9 @@ export default function AttendancePage() {
           {todayLoading
             ? "Loading…"
             : today?.checkOutAt
-              ? `Checked out at ${fmtTime(today.checkOutAt)}.`
+              ? `Checked out at ${formatClock(today.checkOutAt)}.`
               : today?.checkInAt
-                ? `Checked in at ${fmtTime(today.checkInAt)}${onBreak ? " · on break" : ""}.`
+                ? `Checked in at ${formatClock(today.checkInAt)}${onBreak ? " · on break" : ""}.`
                 : "You have not checked in yet today."}
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -198,12 +201,13 @@ export default function AttendancePage() {
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                   <Briefcase className="size-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="font-medium">{r.employeeName}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {r.fromDate} → {r.toDate}
-                    {r.location ? ` · ${r.location}` : ""} · {r.purpose}
+                    {r.fromDate.slice(0, 10)} → {r.toDate.slice(0, 10)}
+                    {r.location ? ` · ${r.location}` : ""}
                   </p>
+                  <RequestDetails reasonLabel="Purpose" reason={r.purpose} status={r.status} approverName={r.approverName} decisionNote={r.decisionNote} />
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -241,8 +245,8 @@ export default function AttendancePage() {
             Today&apos;s Attendance — {now.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
           </p>
           <p className="text-xs text-muted-foreground">
-            Present: {counts.present ?? 0} · Remote: {counts.remote ?? 0} · On Duty: {counts.on_duty ?? 0} · On Leave:{" "}
-            {counts.on_leave ?? 0} · Half Day: {counts.half_day ?? 0}
+            Present: {todaySummary?.present ?? 0} · Remote: {todaySummary?.remote ?? 0} · On Duty: {todaySummary?.onDuty ?? 0} · On Leave:{" "}
+            {todaySummary?.onLeave ?? 0} · Half Day: {todaySummary?.halfDay ?? 0}
           </p>
         </div>
         <Table>
@@ -263,18 +267,18 @@ export default function AttendancePage() {
                 </TableCell>
               </TableRow>
             )}
-            {!teamLoading && (teamToday ?? []).length === 0 && (
+            {!teamLoading && teamToday.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                   No attendance recorded yet today.
                 </TableCell>
               </TableRow>
             )}
-            {(teamToday ?? []).map((a) => (
+            {teamToday.map((a) => (
               <TableRow key={a.id}>
                 <TableCell className="font-medium">{a.employeeName}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{fmtTime(a.checkInAt)}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{fmtTime(a.checkOutAt)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{formatClock(a.checkInAt)}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{formatClock(a.checkOutAt)}</TableCell>
                 <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
                   {a.workMinutes != null ? `${Math.floor(a.workMinutes / 60)}h ${a.workMinutes % 60}m` : "–"}
                 </TableCell>
@@ -290,6 +294,13 @@ export default function AttendancePage() {
         </Table>
       </div>
 
+      {/* useSearchParams needs a Suspense boundary in the app router. */}
+      <Suspense fallback={null}>
+        <AttendanceHistory me={me} />
+      </Suspense>
+
+      <CorrectionsPanel meEmployeeId={me.employeeId} />
+
       <ApplyOdDialog open={applyOdOpen} onOpenChange={setApplyOdOpen} callerRole={me.role} />
 
       <DecisionDialog
@@ -299,6 +310,7 @@ export default function AttendancePage() {
         description={rejectTarget ? `Reject ${rejectTarget.employeeName}'s on-duty request?` : ""}
         confirmLabel="Reject"
         destructive
+        noteRequired
         isPending={decideOd.isPending}
         onConfirm={rejectOd}
       />

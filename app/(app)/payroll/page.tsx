@@ -16,6 +16,7 @@ import { formatInrFull } from "@/lib/format";
 import { ApiError } from "@/lib/api";
 import type { PayrollRun, PayrollRunStatus } from "@/lib/types";
 import { useConfirm } from "@/components/common/use-confirm";
+import { QueryError } from "@/components/common/query-error";
 
 const MONTHS = [
   "", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -31,10 +32,10 @@ export default function PayrollPage() {
   const { data: me } = useMe();
   const isPrivileged = me?.role === "admin" || me?.role === "hr";
 
-  const { data: runs, isLoading: runsLoading } = usePayrollRuns(isPrivileged);
+  const { data: runs, isLoading: runsLoading, isError: runsFailed, refetch: runsRetry, isFetching: runsRetrying } = usePayrollRuns(isPrivileged);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const { data: runPayslips, isLoading: runPayslipsLoading } = usePayslips({ payrollRunId: selectedRunId ?? undefined });
-  const { data: myPayslips, isLoading: myPayslipsLoading } = usePayslips();
+  const { data: myPayslips, isLoading: myPayslipsLoading, isError: myPayslipsFailed, refetch: myPayslipsRetry, isFetching: myPayslipsRetrying } = usePayslips();
 
   const processRun = useProcessRun();
   const markPaid = useMarkRunPaid();
@@ -103,7 +104,8 @@ export default function PayrollPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {!myPayslipsLoading && (myPayslips ?? []).length === 0 && (
+              {myPayslipsFailed && !myPayslips && <QueryError what="your payslips" onRetry={() => myPayslipsRetry()} retrying={myPayslipsRetrying} />}
+              {myPayslips && myPayslips.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                     No payslips yet.
@@ -177,7 +179,8 @@ export default function PayrollPage() {
                 </TableCell>
               </TableRow>
             )}
-            {!runsLoading && (runs ?? []).length === 0 && (
+            {runsFailed && !runs && <QueryError what="payroll runs" onRetry={() => runsRetry()} retrying={runsRetrying} />}
+            {runs && runs.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                   No payroll runs yet — generate one to get started.

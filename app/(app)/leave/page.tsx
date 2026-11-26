@@ -18,13 +18,15 @@ import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { LeaveRequest } from "@/lib/types";
 import { EmptyState } from "@/components/common/empty-state";
+import { RequestDetails } from "@/components/common/request-details";
+import { QueryError } from "@/components/common/query-error";
 
 const balanceTones: BlockTone[] = ["blue", "green", "purple", "orange", "yellow"];
 
 export default function LeaveManagementPage() {
   const { data: me } = useMe();
   const { data: balances, isLoading: balancesLoading } = useLeaveBalances(!!me?.employeeId);
-  const { data: requests, isLoading: requestsLoading } = useLeaveRequests();
+  const { data: requests, isLoading: requestsLoading, isError: requestsFailed, refetch: requestsRetry, isFetching: requestsRetrying } = useLeaveRequests();
   const decideLeave = useDecideLeave();
   const cancelLeave = useCancelLeave();
 
@@ -117,8 +119,9 @@ export default function LeaveManagementPage() {
           <p className="font-medium">Leave Requests {isPrivileged || pendingCount > 0 ? `(${pendingCount} pending)` : ""}</p>
         </div>
         <div className="flex flex-col divide-y">
+          {requestsFailed && !requests && <QueryError what="leave requests" onRetry={() => requestsRetry()} retrying={requestsRetrying} />}
           {requestsLoading && <div className="p-4 text-sm text-muted-foreground">Loading…</div>}
-          {!requestsLoading && (requests ?? []).length === 0 && (
+          {requests && requests.length === 0 && (
             <EmptyState className="py-8" title="No leave requests yet" hint="Use Apply Leave to request time off. Requests waiting for approval appear here." />
           )}
           {(requests ?? []).map((r) => (
@@ -127,16 +130,15 @@ export default function LeaveManagementPage() {
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                   <DoorOpen className="size-4" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-medium">{r.employeeName}</p>
                     <StatusBadge tone="info">{r.leaveTypeName}</StatusBadge>
                   </div>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {r.fromDate} → {r.toDate} · {r.days} day{r.days === 1 ? "" : "s"}
-                    {r.reason ? ` · ${r.reason}` : ""}
+                    {r.fromDate.slice(0, 10)} → {r.toDate.slice(0, 10)} · {r.days} day{r.days === 1 ? "" : "s"}
                   </p>
-                  {r.decisionNote && <p className="mt-0.5 text-xs text-muted-foreground">Note: {r.decisionNote}</p>}
+                  <RequestDetails reasonLabel="Reason" reason={r.reason} status={r.status} approverName={r.approverName} decisionNote={r.decisionNote} />
                 </div>
               </div>
 
@@ -185,6 +187,7 @@ export default function LeaveManagementPage() {
         description={rejectTarget ? `Reject ${rejectTarget.employeeName}'s ${rejectTarget.leaveTypeName} request?` : ""}
         confirmLabel="Reject"
         destructive
+        noteRequired
         isPending={decideLeave.isPending}
         onConfirm={reject}
       />

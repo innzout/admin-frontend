@@ -19,6 +19,7 @@ import { formatInrFull } from "@/lib/format";
 import { ApiError } from "@/lib/api";
 import type { Invoice, InvoiceStatus } from "@/lib/types";
 import { useConfirm } from "@/components/common/use-confirm";
+import { QueryError } from "@/components/common/query-error";
 
 const filters: { key: InvoiceStatus | "all"; label: string }[] = [
   { key: "all", label: "All Invoices" },
@@ -32,7 +33,7 @@ const PAGE_SIZE = 10;
 export default function BillingPage() {
   const [filter, setFilter] = useState<InvoiceStatus | "all">("all");
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useInvoices({ status: filter === "all" ? undefined : filter, page, limit: PAGE_SIZE });
+  const { data, isLoading, isError: dataFailed, refetch: dataRetry, isFetching: dataRetrying } = useInvoices({ status: filter === "all" ? undefined : filter, page, limit: PAGE_SIZE });
   const sendInvoice = useSendInvoice();
   const { confirm, confirmDialog } = useConfirm();
 
@@ -119,9 +120,10 @@ export default function BillingPage() {
         <p className="text-sm text-muted-foreground">{data?.total ?? 0} invoices</p>
       </div>
 
+      {dataFailed && !data && <QueryError what="invoices" onRetry={() => dataRetry()} retrying={dataRetrying} />}
       {isLoading && <Skeleton className="h-64 w-full rounded-xl" />}
 
-      {!isLoading && (
+      {data && (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <Table>
             <TableHeader>

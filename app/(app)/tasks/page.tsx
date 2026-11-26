@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { taskPriorityTone, taskStatusLabel, taskStatusTone } from "@/lib/status";
 import { ApiError } from "@/lib/api";
 import type { Task, TaskStatus } from "@/lib/types";
+import { QueryError } from "@/components/common/query-error";
 
 const filters: { key: TaskStatus | "all"; label: string }[] = [
   { key: "all", label: "All Tasks" },
@@ -31,7 +32,7 @@ const PAGE_SIZE = 15;
 export default function TasksPage() {
   const [filter, setFilter] = useState<TaskStatus | "all">("all");
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useTasks({ status: filter === "all" ? undefined : filter, page, limit: PAGE_SIZE });
+  const { data, isLoading, isError: dataFailed, refetch: dataRetry, isFetching: dataRetrying } = useTasks({ status: filter === "all" ? undefined : filter, page, limit: PAGE_SIZE });
   const updateStatus = useUpdateTaskStatus();
   const deleteTask = useDeleteTask();
 
@@ -115,9 +116,10 @@ export default function TasksPage() {
         <p className="text-sm text-muted-foreground">{data?.total ?? 0} tasks</p>
       </div>
 
+      {dataFailed && !data && <QueryError what="tasks" onRetry={() => dataRetry()} retrying={dataRetrying} />}
       {isLoading && <Skeleton className="h-64 w-full rounded-xl" />}
 
-      {!isLoading && (
+      {data && (
         <div className="flex flex-col divide-y rounded-xl border bg-card">
           {tasks.map((t) => (
             <div key={t.id} className="flex items-center gap-3 p-4">

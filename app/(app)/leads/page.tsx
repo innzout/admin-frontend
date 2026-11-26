@@ -11,6 +11,8 @@ import { LeadDialog } from "@/components/company/lead-dialog";
 import { useLeadSummary, useLeads, useSaveLead } from "@/hooks/use-company";
 import { cn } from "@/lib/utils";
 import { inr, LEAD_STAGES, leadStageLabel, type Lead, type LeadStage } from "@/lib/company-types";
+import { localIsoDate } from "@/lib/dates";
+import { QueryError } from "@/components/common/query-error";
 
 const stageAccent: Record<LeadStage, string> = {
   new: "border-t-slate-400",
@@ -24,7 +26,7 @@ const stageAccent: Record<LeadStage, string> = {
 
 export default function LeadsPage() {
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useLeads({ search: search || undefined });
+  const { data, isLoading, isError: dataFailed, refetch: dataRetry, isFetching: dataRetrying } = useLeads({ search: search || undefined });
   const { data: summary } = useLeadSummary();
   const save = useSaveLead();
   const [open, setOpen] = useState(false);
@@ -32,7 +34,7 @@ export default function LeadsPage() {
   const [dragId, setDragId] = useState<string | null>(null);
 
   const leads = data?.leads ?? [];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localIsoDate();
 
   const moveTo = (id: string, stage: LeadStage) => {
     const l = leads.find((x) => x.id === id);
@@ -67,7 +69,9 @@ export default function LeadsPage() {
 
       <SearchInput placeholder="Search leads by name, company or email…" value={search} onChange={setSearch} />
 
-      {isLoading ? (
+      {dataFailed && !data ? (
+        <QueryError what="leads" onRetry={() => dataRetry()} retrying={dataRetrying} />
+      ) : isLoading ? (
         <Skeleton className="h-96 rounded-xl" />
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-2">
@@ -124,7 +128,7 @@ export default function LeadsPage() {
         </div>
       )}
 
-      {!isLoading && leads.length === 0 && (
+      {data && leads.length === 0 && (
         <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <TrendingUp className="size-4" /> No leads yet — add your first enquiry.
         </p>

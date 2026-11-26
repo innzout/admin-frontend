@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { ApplyOdInput, OdRequest } from "@/lib/types";
 
+// Approving or cancelling on-duty rewrites attendance days, so both refresh.
 function invalidateOd(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["od"] });
+  queryClient.invalidateQueries({ queryKey: ["attendance"] });
 }
 
 export interface OdRequestFilters {

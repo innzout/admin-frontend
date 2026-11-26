@@ -13,12 +13,11 @@ import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { EmptyState } from "@/components/common/empty-state";
 import { StatusBadge } from "@/components/common/status-badge";
 import { useLogins, useSetLoginRole } from "@/hooks/use-logins";
-import { ROLES } from "@/lib/access";
+import { ROLES, roleLabel } from "@/lib/access";
 import { ApiError } from "@/lib/api";
 import type { Login, Role } from "@/lib/types";
 
 const MAX_SEARCH = 60;
-const roleLabel = (role: Role) => ROLES.find((r) => r.role === role)?.label ?? role;
 
 /** What a change grants or removes, shown in the confirmation. */
 function changeImpact(from: Role, to: Role): string {

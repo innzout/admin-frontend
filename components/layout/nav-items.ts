@@ -32,6 +32,10 @@ export interface NavItem {
   adminOnly?: boolean;
   /** Who sees it: "all" logins, "mgmt" (admin/hr/manager — the default), or "staff" (employee/intern only). */
   audience?: "all" | "mgmt" | "staff";
+  /** Also shown to Team Leads (delivery pages only; they never see CRM or finance). */
+  teamLead?: boolean;
+  /** Only interns see it (their own internship). */
+  internOnly?: boolean;
 }
 
 export interface NavSection {
@@ -45,6 +49,7 @@ export const navSections: NavSection[] = [
     label: "Overview",
     items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, audience: "all" },
       { label: "My Tasks", href: "/my-tasks", icon: ClipboardList, audience: "all" },
+      { label: "My Internship", href: "/my-internship", icon: GraduationCap, internOnly: true },
       { label: "Timeline", href: "/timeline", icon: GanttChart, audience: "all" }],
   },
   {
@@ -52,9 +57,9 @@ export const navSections: NavSection[] = [
     items: [
       { label: "Clients", href: "/clients", icon: Handshake },
       { label: "Leads", href: "/leads", icon: TrendingUp },
-      { label: "Projects", href: "/projects", icon: FolderKanban },
-      { label: "Tasks", href: "/tasks", icon: ListChecks },
-      { label: "Team Board", href: "/team", icon: UsersRound },
+      { label: "Projects", href: "/projects", icon: FolderKanban, teamLead: true },
+      { label: "Tasks", href: "/tasks", icon: ListChecks, teamLead: true },
+      { label: "Team Board", href: "/team", icon: UsersRound, teamLead: true },
     ],
   },
   {
@@ -62,7 +67,7 @@ export const navSections: NavSection[] = [
     items: [
       { label: "Employees", href: "/employees", icon: Users },
       { label: "Departments", href: "/departments", icon: Building2 },
-      { label: "Interns", href: "/interns", icon: GraduationCap },
+      { label: "Interns", href: "/interns", icon: GraduationCap, teamLead: true },
       { label: "Attendance", href: "/attendance", icon: CalendarCheck, audience: "all" },
       { label: "Leave Management", href: "/leave", icon: DoorOpen, audience: "all" },
       { label: "Payroll", href: "/payroll", icon: Wallet, audience: "all" },
@@ -98,8 +103,10 @@ export function navForRole(role: Role | ""): NavSection[] {
       ...section,
       items: section.items.filter((item) => {
         if (item.adminOnly && role !== "admin") return false;
+        if (item.internOnly) return role === "intern";
         const audience = item.audience ?? "mgmt";
         if (audience === "all") return true;
+        if (role === "team_lead") return !!item.teamLead;
         return staff ? audience === "staff" : audience === "mgmt";
       }),
     }))

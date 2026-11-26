@@ -20,13 +20,14 @@ import { projectStatusLabel, projectStatusTone, taskPriorityTone, taskStatusLabe
 import { formatInrFull } from "@/lib/format";
 import { ApiError } from "@/lib/api";
 import type { ProjectStatus, Task, TaskStatus } from "@/lib/types";
+import { RecordLoadError } from "@/components/common/query-error";
 
 const statusOptions: ProjectStatus[] = ["in_progress", "review", "completed", "on_hold"];
 const taskStatusOptions: TaskStatus[] = ["new", "in_progress", "in_review", "completed", "cancelled"];
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
-  const { data: project, isLoading } = useProject(params.id);
+  const { data: project, isLoading, isError, error, refetch } = useProject(params.id);
   const { data: taskResult } = useTasks({ projectId: params.id, limit: 100 });
   const updateProject = useUpdateProject();
   const updateTaskStatus = useUpdateTaskStatus();
@@ -34,6 +35,10 @@ export default function ProjectDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  if (isError && !project) {
+    return <RecordLoadError error={error} what="project" backHref="/projects" backLabel="Back to projects" onRetry={() => refetch()} />;
+  }
 
   if (isLoading || !project) {
     return (

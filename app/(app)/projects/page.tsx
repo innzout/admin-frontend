@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { projectStatusLabel, projectStatusTone } from "@/lib/status";
 import { ApiError } from "@/lib/api";
 import type { Project, ProjectStatus } from "@/lib/types";
+import { QueryError } from "@/components/common/query-error";
 
 const kanbanColumns: ProjectStatus[] = ["in_progress", "review", "completed", "on_hold"];
 const PAGE_SIZE = 10;
@@ -42,7 +43,7 @@ export default function ProjectsPage() {
 
   const [view, setView] = useState<"list" | "kanban">("list");
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useProjects(
+  const { data, isLoading, isError: dataFailed, refetch: dataRetry, isFetching: dataRetrying } = useProjects(
     view === "list" ? { page, limit: PAGE_SIZE, clientId } : { limit: KANBAN_LIMIT, clientId },
   );
   const deleteProject = useDeleteProject();
@@ -122,9 +123,10 @@ export default function ProjectsPage() {
         </div>
       )}
 
+      {dataFailed && !data && <QueryError what="projects" onRetry={() => dataRetry()} retrying={dataRetrying} />}
       {isLoading && <Skeleton className="h-64 w-full rounded-xl" />}
 
-      {!isLoading && projects.length === 0 && (
+      {data && projects.length === 0 && (
         <EmptyState
           className="rounded-xl border bg-card"
           icon={FolderKanban}
@@ -133,7 +135,7 @@ export default function ProjectsPage() {
         />
       )}
 
-      {!isLoading && projects.length > 0 && view === "list" && (
+      {data && projects.length > 0 && view === "list" && (
         <>
           <div className="overflow-x-auto rounded-xl border bg-card">
             <Table>
@@ -216,7 +218,7 @@ export default function ProjectsPage() {
         </>
       )}
 
-      {!isLoading && projects.length > 0 && view === "kanban" && (
+      {data && projects.length > 0 && view === "kanban" && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {kanbanColumns.map((status) => (
             <div key={status} className="flex flex-col gap-3">

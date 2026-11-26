@@ -22,7 +22,7 @@ import { useApplyLeave, useLeaveTypes } from "@/hooks/use-leave";
 import { useEmployees } from "@/hooks/use-employees";
 import { ApiError } from "@/lib/api";
 import type { Role } from "@/lib/types";
-import { requiredSelect, requiredDate, optionalText } from "@/lib/validation";
+import { requiredSelect, requiredDate, requiredText } from "@/lib/validation";
 
 const SELF = "self";
 
@@ -33,9 +33,14 @@ const schema = z
     fromDate: requiredDate("Start date"),
     toDate: requiredDate("End date"),
     isHalfDay: z.boolean(),
-    reason: optionalText(1000).optional(),
+    reason: requiredText("Reason", 1000, 3),
   })
   .refine((v) => v.toDate >= v.fromDate, { message: "End date can't be before start date", path: ["toDate"] })
+  // Balances are per year (same rule as the API).
+  .refine((v) => !v.fromDate || !v.toDate || v.fromDate.slice(0, 4) === v.toDate.slice(0, 4), {
+    message: "A leave can't run into the next year; apply for each year separately",
+    path: ["toDate"],
+  })
   .refine((v) => !v.isHalfDay || v.fromDate === v.toDate, {
     message: "A half-day request must use the same start and end date",
     path: ["toDate"],
@@ -81,7 +86,7 @@ export function ApplyLeaveDialog({
         fromDate: values.fromDate,
         toDate: values.toDate,
         isHalfDay: values.isHalfDay,
-        reason: values.reason || undefined,
+        reason: values.reason,
       },
       {
         onSuccess: () => {
@@ -175,8 +180,9 @@ export function ApplyLeaveDialog({
           />
 
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="reason">Reason (optional)</Label>
-            <Textarea id="reason" {...register("reason")} />
+            <Label htmlFor="reason">Reason</Label>
+            <Textarea id="reason" maxLength={1000} aria-invalid={!!errors.reason} placeholder="Why do you need this leave?" {...register("reason")} />
+            {errors.reason && <p className="text-sm text-destructive">{errors.reason.message}</p>}
           </div>
 
           <DialogFooter>

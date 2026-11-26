@@ -35,6 +35,7 @@ import {
 } from "@/lib/validation";
 import { phoneInput } from "@/lib/input-filters";
 import { useConfirm } from "@/components/common/use-confirm";
+import { localIsoDate } from "@/lib/dates";
 
 const NO_MANAGER = "none";
 
@@ -48,7 +49,7 @@ const schema = z.object({
   dob: optionalDate
     .optional()
     .refine(
-      (v) => !v || v <= new Date().toISOString().slice(0, 10),
+      (v) => !v || v <= localIsoDate(),
       "Date of birth can't be in the future",
     ),
   address: optionalText(500).optional(),

@@ -15,6 +15,7 @@ import { useCreateDocument } from "@/hooks/use-documents";
 import { TEMPLATES, type TemplateDef, type TemplateGroup } from "@/lib/documents/templates";
 import { showApiError } from "@/lib/validation";
 import { cn } from "@/lib/utils";
+import { localIsoDate } from "@/lib/dates";
 
 const GROUPS: TemplateGroup[] = ["HR", "Sales", "Finance", "General"];
 const LINK_LABEL = { employee: "Employee", intern: "Intern", client: "Client", invoice: "Invoice", none: "" } as const;
@@ -71,7 +72,7 @@ export function NewDocumentDialog({ open, onOpenChange }: { open: boolean; onOpe
     if (link === "invoice" && (invoiceLoading || !invoice)) return;
     const employee = link === "employee" || link === "intern" ? employees?.employees.find((e) => e.id === recordId) : undefined;
     const client = link === "client" ? clients?.clients.find((c) => c.id === recordId) : clients?.clients.find((c) => c.id === invoice?.clientId);
-    const { title, content } = template.build({ company, employee, client, invoice: link === "invoice" ? invoice : undefined, today: new Date().toISOString().slice(0, 10) });
+    const { title, content } = template.build({ company, employee, client, invoice: link === "invoice" ? invoice : undefined, today: localIsoDate() });
     create.mutate(
       {
         type: template.type,

@@ -8,7 +8,8 @@ import { useOdRequests } from "@/hooks/use-od";
 import { useInvoices } from "@/hooks/use-invoices";
 import { useExpenses } from "@/hooks/use-expenses";
 import { useDocuments } from "@/hooks/use-documents";
-import { useInternSummary, useLeadSummary } from "@/hooks/use-company";
+import { useLeadSummary } from "@/hooks/use-company";
+import { useInternSummary } from "@/hooks/use-interns";
 import { useTeamLoad } from "@/hooks/use-tasks";
 import { cn } from "@/lib/utils";
 

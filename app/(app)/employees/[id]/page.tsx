@@ -32,16 +32,39 @@ import {
 } from "@/lib/status";
 import { formatInrFull } from "@/lib/format";
 import { ApiError } from "@/lib/api";
+import { RecordLoadError } from "@/components/common/query-error";
 
 const MONTHS = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+/** Days shown in the profile card; the full history lives on the Attendance page. */
+const RECENT_ATTENDANCE = 8;
+
+/**
+ * Admin/HR only: the profile includes pay and payslips. The role is checked
+ * before EmployeeDetail mounts, so no data request starts for anyone else.
+ */
 export default function EmployeeDetailPage() {
-  const params = useParams<{ id: string }>();
   const router = useRouter();
   const { data: me } = useMe();
-  const { data: employee, isLoading } = useEmployee(params.id);
+  if (!me) return null;
+  if (me.role !== "admin" && me.role !== "hr") {
+    return (
+      <div className="flex flex-col items-center gap-3 py-24 text-center">
+        <p className="font-medium">You don&apos;t have access to this page.</p>
+        <Button variant="outline" onClick={() => router.push("/dashboard")}>
+          Back to dashboard
+        </Button>
+      </div>
+    );
+  }
+  return <EmployeeDetail />;
+}
 
-  const { data: attendance } = useAttendanceList({ employeeId: params.id });
+function EmployeeDetail() {
+  const params = useParams<{ id: string }>();
+  const { data: employee, isLoading, isError, error, refetch } = useEmployee(params.id);
+
+  const { data: attendance } = useAttendanceList({ employeeId: params.id, limit: RECENT_ATTENDANCE });
   const { data: leaveRequests } = useLeaveRequests({ employeeId: params.id });
   const { data: odRequests } = useOdRequests({ employeeId: params.id });
   const { data: taskResult } = useTasks({ assigneeId: params.id, limit: 10 });
@@ -57,17 +80,8 @@ export default function EmployeeDetailPage() {
   const [loginConfirm, setLoginConfirm] = useState(false);
   const [credentials, setCredentials] = useState<TempCredentials | null>(null);
 
-  const isPrivileged = me?.role === "admin" || me?.role === "hr";
-
-  if (me && !isPrivileged) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-24 text-center">
-        <p className="font-medium">You don&apos;t have access to this page.</p>
-        <Button variant="outline" onClick={() => router.push("/dashboard")}>
-          Back to dashboard
-        </Button>
-      </div>
-    );
+  if (isError && !employee) {
+    return <RecordLoadError error={error} what="employee" backHref="/employees" backLabel="Back to employees" onRetry={() => refetch()} />;
   }
 
   if (isLoading || !employee) {
@@ -176,9 +190,9 @@ export default function EmployeeDetailPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <PanelCard title="Recent Attendance" contentClassName="flex flex-col gap-2">
-          {(attendance ?? []).length === 0 && <p className="text-sm text-muted-foreground">No attendance recorded yet.</p>}
-          {(attendance ?? []).slice(0, 8).map((a) => (
+        <PanelCard title="Recent Attendance" viewAllHref={`/attendance?employeeId=${params.id}#history`} contentClassName="flex flex-col gap-2">
+          {(attendance?.records ?? []).length === 0 && <p className="text-sm text-muted-foreground">No attendance recorded yet.</p>}
+          {(attendance?.records ?? []).map((a) => (
             <div key={a.id} className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">{a.date.slice(0, 10)}</span>
               <div className="flex items-center gap-1.5">

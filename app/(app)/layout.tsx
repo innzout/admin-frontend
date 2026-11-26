@@ -10,11 +10,12 @@ import { useMe } from "@/hooks/use-auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { Button } from "@/components/ui/button";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const loggedIn = useIsLoggedIn();
-  const { data: me, isLoading: meLoading } = useMe();
+  const { data: me, isLoading: meLoading, isError: meFailed, refetch: refetchMe, isFetching: meRetrying } = useMe();
   const mustResetPassword = me?.mustResetPassword === true;
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
@@ -50,6 +51,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // brief blank beat here beats letting a forced-reset user see (and use)
   // the full app for a frame before being bounced out.
   if (meLoading || mustResetPassword || pageBlocked) return null;
+  // Without the profile no page knows the role, so every screen would render
+  // empty. Say so and offer a retry instead (a lost session already went to
+  // /login inside api()).
+  if (!me) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="font-heading text-lg font-semibold">Can&apos;t reach the server</p>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          {meFailed ? "Check your connection, then try again." : "Loading your profile…"}
+        </p>
+        {meFailed && (
+          <Button variant="outline" disabled={meRetrying} onClick={() => refetchMe()}>
+            {meRetrying ? "Retrying…" : "Try again"}
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen w-full">

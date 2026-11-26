@@ -21,10 +21,11 @@ import { formatInrFull } from "@/lib/format";
 import { ApiError } from "@/lib/api";
 import type { Invoice } from "@/lib/types";
 import { amount, requiredDate, optionalText } from "@/lib/validation";
+import { localIsoDate } from "@/lib/dates";
 
 const schema = z.object({
   amount: amount("Payment amount"),
-  paidOn: requiredDate("Payment date").refine((v) => v <= new Date().toISOString().slice(0, 10), "Payment date can't be in the future"),
+  paidOn: requiredDate("Payment date").refine((v) => v <= localIsoDate(), "Payment date can't be in the future"),
   method: optionalText(50).optional(),
   reference: optionalText(100).optional(),
 });
@@ -49,7 +50,7 @@ export function RecordPaymentDialog({
 
   useEffect(() => {
     if (!open || !invoice) return;
-    reset({ amount: invoice.balanceDue, paidOn: new Date().toISOString().slice(0, 10), method: "", reference: "" });
+    reset({ amount: invoice.balanceDue, paidOn: localIsoDate(), method: "", reference: "" });
   }, [open, invoice, reset]);
 
   if (!invoice) return null;
