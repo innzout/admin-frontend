@@ -8,6 +8,9 @@ export interface EmployeeFilters {
   departmentId?: string;
   status?: string;
   search?: string;
+  /** A login role, or "none" for people without a login. */
+  role?: string;
+  reportingManagerId?: string;
   page?: number;
   limit?: number;
 }
@@ -17,6 +20,8 @@ function toQuery(filters: EmployeeFilters): string {
   if (filters.departmentId) params.set("departmentId", filters.departmentId);
   if (filters.status) params.set("status", filters.status);
   if (filters.search) params.set("search", filters.search);
+  if (filters.role) params.set("role", filters.role);
+  if (filters.reportingManagerId) params.set("reportingManagerId", filters.reportingManagerId);
   params.set("page", String(filters.page ?? 1));
   params.set("limit", String(filters.limit ?? 20));
   return params.toString();

@@ -22,6 +22,9 @@ export function useSetLoginRole() {
         method: "PATCH",
         body: JSON.stringify({ role }),
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: LOGINS_KEY }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: LOGINS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+    },
   });
 }

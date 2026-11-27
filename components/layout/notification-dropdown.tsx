@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Building2, TrendingUp, Users } from "lucide-react";
+import { Bell, Briefcase, Building2, CalendarDays, ChevronRight, ClipboardCheck, Clock, ListChecks, TrendingUp, Users, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotifications } from "@/hooks/use-notifications";
+import { useMarkAllNotificationsRead, useNotificationHasLink, useNotifications, useOpenNotification } from "@/hooks/use-notifications";
 import { ApiError } from "@/lib/api";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,12 @@ const iconByType: Record<string, typeof Bell> = {
   employee: Users,
   department: Building2,
   lead: TrendingUp,
+  task: ListChecks,
+  task_review: ClipboardCheck,
+  leave_request: CalendarDays,
+  od_request: Briefcase,
+  attendance_correction: Clock,
+  payroll_run: Wallet,
 };
 
 /**
@@ -29,7 +35,8 @@ const iconByType: Record<string, typeof Bell> = {
  */
 export function NotificationDropdown() {
   const { data: notifications } = useNotifications();
-  const markRead = useMarkNotificationRead();
+  const openNotification = useOpenNotification();
+  const hasLink = useNotificationHasLink();
   const markAllRead = useMarkAllNotificationsRead();
   const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
   const recent = (notifications ?? []).slice(0, 8);
@@ -70,7 +77,7 @@ export function NotificationDropdown() {
               <DropdownMenuItem
                 key={n.id}
                 className={cn("flex items-start gap-3 rounded-none px-3 py-2.5", !n.isRead && "bg-primary/[0.04]")}
-                onSelect={() => !n.isRead && markRead.mutate(n.id)}
+                onClick={() => openNotification(n)}
               >
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                   <Icon className="size-3.5" />
@@ -81,6 +88,7 @@ export function NotificationDropdown() {
                   <p className="mt-0.5 text-[11px] text-muted-foreground">{timeAgo(n.createdAt)}</p>
                 </div>
                 {!n.isRead && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />}
+                {hasLink(n) && <ChevronRight className="mt-1 size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
               </DropdownMenuItem>
             );
           })}

@@ -36,6 +36,7 @@ import {
 import { phoneInput } from "@/lib/input-filters";
 import { useConfirm } from "@/components/common/use-confirm";
 import { localIsoDate } from "@/lib/dates";
+import { roleLabel } from "@/lib/access";
 
 const NO_MANAGER = "none";
 
@@ -263,7 +264,7 @@ export function EditEmployeeDialog({
                         <SelectItem value={NO_MANAGER}>No manager</SelectItem>
                         {managerOptions.map((m) => (
                           <SelectItem key={m.id} value={m.id}>
-                            {m.fullName} — {m.designation}
+                            {m.fullName} — {m.loginRole ? roleLabel(m.loginRole) : m.designation}
                           </SelectItem>
                         ))}
                       </SelectContent>

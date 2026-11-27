@@ -1,6 +1,9 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMe } from "@/hooks/use-auth";
+import { notificationHref } from "@/lib/notification-links";
 import { api } from "@/lib/api";
 import type { AppNotification } from "@/lib/types";
 
@@ -26,4 +29,22 @@ export function useMarkAllNotificationsRead() {
     mutationFn: () => api("/api/v1/notifications/read-all", { method: "PATCH" }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
+}
+
+/** Click on a notification: mark it read and open the record it is about. */
+export function useOpenNotification() {
+  const router = useRouter();
+  const markRead = useMarkNotificationRead();
+  const { data: me } = useMe();
+  return (n: AppNotification) => {
+    if (!n.isRead) markRead.mutate(n.id);
+    const href = me ? notificationHref(n, me.role) : null;
+    if (href) router.push(href);
+  };
+}
+
+/** Whether clicking leads anywhere, so the row can say so. */
+export function useNotificationHasLink() {
+  const { data: me } = useMe();
+  return (n: AppNotification) => !!me && notificationHref(n, me.role) !== null;
 }

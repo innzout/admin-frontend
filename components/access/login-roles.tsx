@@ -14,18 +14,11 @@ import { EmptyState } from "@/components/common/empty-state";
 import { StatusBadge } from "@/components/common/status-badge";
 import { useLogins, useSetLoginRole } from "@/hooks/use-logins";
 import { ROLES, roleLabel } from "@/lib/access";
+import { changeImpact } from "./change-role-dialog";
 import { ApiError } from "@/lib/api";
 import type { Login, Role } from "@/lib/types";
 
 const MAX_SEARCH = 60;
-
-/** What a change grants or removes, shown in the confirmation. */
-function changeImpact(from: Role, to: Role): string {
-  if (to === "admin") return "Admins can do everything, including changing company settings, reading the activity log and changing other people's roles.";
-  if (from === "admin") return "They lose company settings, the activity log and role management.";
-  const summary = ROLES.find((r) => r.role === to)?.summary ?? "";
-  return `${summary} The change applies on their next click; they don't need to sign in again.`;
-}
 
 function formatLastLogin(iso?: string): string {
   if (!iso) return "Never signed in";

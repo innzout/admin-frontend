@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MoreVertical, Pencil, UserX } from "lucide-react";
+import { KeyRound, MoreVertical, Pencil, UserX } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -17,6 +17,9 @@ import { employeeStatusLabel, employeeStatusTone } from "@/lib/status";
 import { ApiError } from "@/lib/api";
 import type { Employee } from "@/lib/types";
 import { EmptyState } from "@/components/common/empty-state";
+import { ChangeRoleDialog, type RoleTarget } from "@/components/access/change-role-dialog";
+import { useMe } from "@/hooks/use-auth";
+import { roleLabel } from "@/lib/access";
 
 const employmentTypeLabel: Record<string, string> = {
   full_time: "Full-time",
@@ -29,6 +32,10 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
   const deactivate = useDeactivateEmployee();
   const [confirming, setConfirming] = useState<Employee | null>(null);
   const [editing, setEditing] = useState<Employee | null>(null);
+  const [roleTarget, setRoleTarget] = useState<RoleTarget | null>(null);
+  const { data: me } = useMe();
+  // Only admins may change roles (the API enforces it), and never their own.
+  const canChangeRole = (e: Employee) => me?.role === "admin" && !!e.loginUserId && !!e.loginRole && e.loginUserId !== me.id && e.status !== "exited";
 
   const confirmDeactivate = () => {
     if (!confirming) return;
@@ -61,6 +68,8 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
             <TableHead>Employee</TableHead>
             <TableHead className="hidden md:table-cell">Department</TableHead>
             <TableHead className="hidden sm:table-cell">Designation</TableHead>
+            <TableHead className="hidden sm:table-cell">Role</TableHead>
+            <TableHead className="hidden xl:table-cell">Reports to</TableHead>
             <TableHead className="hidden lg:table-cell">Type</TableHead>
             <TableHead className="hidden lg:table-cell">Joined</TableHead>
             <TableHead>Status</TableHead>
@@ -84,6 +93,16 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
               </TableCell>
               <TableCell className="hidden text-sm text-muted-foreground md:table-cell">{e.departmentName ?? "—"}</TableCell>
               <TableCell className="hidden text-sm sm:table-cell">{e.designation}</TableCell>
+              <TableCell className="hidden sm:table-cell">
+                {e.loginRole ? (
+                  <StatusBadge tone={e.loginRole === "admin" ? "accent" : e.loginRole === "employee" || e.loginRole === "intern" ? "neutral" : "info"}>
+                    {roleLabel(e.loginRole)}
+                  </StatusBadge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">No login</span>
+                )}
+              </TableCell>
+              <TableCell className="hidden max-w-40 truncate text-sm text-muted-foreground xl:table-cell">{e.reportingManagerName ?? "—"}</TableCell>
               <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
                 {employmentTypeLabel[e.employmentType] ?? e.employmentType}
               </TableCell>
@@ -99,12 +118,18 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
                     <MoreVertical className="size-4" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => setEditing(e)}>
+                    <DropdownMenuItem onClick={() => setEditing(e)}>
                       <Pencil className="size-4" />
                       Edit
                     </DropdownMenuItem>
+                    {canChangeRole(e) && (
+                      <DropdownMenuItem onClick={() => setRoleTarget({ userId: e.loginUserId!, name: e.fullName, role: e.loginRole! })}>
+                        <KeyRound className="size-4" />
+                        Change role
+                      </DropdownMenuItem>
+                    )}
                     {e.status !== "exited" && (
-                      <DropdownMenuItem variant="destructive" onSelect={() => setConfirming(e)}>
+                      <DropdownMenuItem variant="destructive" onClick={() => setConfirming(e)}>
                         <UserX className="size-4" />
                         Deactivate
                       </DropdownMenuItem>
@@ -126,6 +151,8 @@ export function EmployeeTable({ employees, loading }: { employees: Employee[]; l
         isPending={deactivate.isPending}
         onConfirm={confirmDeactivate}
       />
+
+      <ChangeRoleDialog target={roleTarget} onOpenChange={(open) => !open && setRoleTarget(null)} />
 
       <EditEmployeeDialog employee={editing} open={!!editing} onOpenChange={(open) => !open && setEditing(null)} />
     </>

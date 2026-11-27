@@ -75,7 +75,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
               <KeyRound className="size-4" />
               Change Password
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => logout.mutate()} variant="destructive">
+            <DropdownMenuItem onClick={() => logout.mutate()} variant="destructive">
               <LogOut className="size-4" />
               Log out
             </DropdownMenuItem>

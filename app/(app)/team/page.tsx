@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useLinkedTask } from "@/hooks/use-linked-task";
 import { AlertTriangle, ChevronDown, Plus, UsersRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -29,11 +30,20 @@ const OPEN_STATUSES = new Set(["new", "in_progress", "in_review"]);
 const isStale = (m: MemberLoad) => m.open > 0 && (!m.lastActivityAt || Date.now() - Date.parse(m.lastActivityAt) > STALE_DAYS * 86_400_000);
 
 export default function TeamPage() {
+  // useSearchParams (via useLinkedTask) needs a Suspense boundary.
+  return (
+    <Suspense fallback={null}>
+      <TeamBoard />
+    </Suspense>
+  );
+}
+
+function TeamBoard() {
   const { data: members, isLoading, isError, refetch } = useTeamLoad();
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [assignTo, setAssignTo] = useState<string | null>(null);
-  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
+  const linkedTask = useLinkedTask();
   const { data: queue } = useTasks({
     status: "in_review",
     sort: "submittedAt",
@@ -72,7 +82,7 @@ export default function TeamPage() {
         <Stat label="People with no open task" value={totals.idle} />
       </div>
 
-      <ReviewQueue tasks={reviewTasks} onOpen={(t) => setOpenTaskId(t.id)} />
+      <ReviewQueue tasks={reviewTasks} onOpen={(t) => linkedTask.open(t.id)} />
 
       <SearchInput value={search} onChange={setSearch} placeholder="Search people…" className="w-full sm:w-72" />
 
@@ -140,7 +150,7 @@ export default function TeamPage() {
                   {expanded === m.employeeId ? "Hide tasks" : `Show ${m.open} open task${m.open === 1 ? "" : "s"}`}
                 </button>
               )}
-              {expanded === m.employeeId && <MemberTasks employeeId={m.employeeId} onOpen={(t) => setOpenTaskId(t.id)} />}
+              {expanded === m.employeeId && <MemberTasks employeeId={m.employeeId} onOpen={(t) => linkedTask.open(t.id)} />}
             </Card>
           ))}
         </div>
@@ -152,7 +162,7 @@ export default function TeamPage() {
         open={assignTo !== null}
         onOpenChange={(o) => !o && setAssignTo(null)}
       />
-      <OpenTask taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
+      <OpenTask taskId={linkedTask.openId} onClose={linkedTask.close} />
     </div>
   );
 }

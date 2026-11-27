@@ -65,6 +65,10 @@ export interface Employee {
   address?: string;
   avatarUrl?: string;
   hasLogin: boolean;
+  /** Admins only: the login to change the role of. */
+  loginUserId?: string;
+  /** Hidden from employee/intern viewers except on their own record. */
+  loginRole?: Role;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo } from "react";
+import { useLinkedTask } from "@/hooks/use-linked-task";
 import { AlertTriangle, CalendarClock, CheckCircle2, ListChecks, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,18 @@ import { QueryError } from "@/components/common/query-error";
 const COLUMNS: TaskStatus[] = ["new", "in_progress", "in_review", "completed"];
 
 export default function MyTasksPage() {
+  // useSearchParams (via useLinkedTask) needs a Suspense boundary.
+  return (
+    <Suspense fallback={null}>
+      <MyTasks />
+    </Suspense>
+  );
+}
+
+function MyTasks() {
   const { data: tasks, isLoading, isError: tasksFailed, refetch: tasksRetry, isFetching: tasksRetrying } = useMyTasks();
   const updateStatus = useUpdateTaskStatus();
-  const [selected, setSelected] = useState<Task | null>(null);
+  const linkedTask = useLinkedTask();
   const today = localIsoDate();
 
   const stats = useMemo(() => {
@@ -90,7 +100,7 @@ export default function MyTasksPage() {
                   const sentBack = changesRequested(t);
                   return (
                     <div key={t.id} className="rounded-lg border bg-background p-3 shadow-xs">
-                      <button onClick={() => setSelected(t)} className="block w-full text-left">
+                      <button onClick={() => linkedTask.open(t.id)} className="block w-full text-left">
                         <p className={cn("text-sm font-medium", col === "completed" && "text-muted-foreground line-through")}>{t.title}</p>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">{t.projectName}</p>
                         {sentBack && (
@@ -117,7 +127,7 @@ export default function MyTasksPage() {
                           </Button>
                         )}
                         {t.status === "in_progress" && (
-                          <Button size="sm" className="h-7 flex-1 text-xs" onClick={() => setSelected(t)}>
+                          <Button size="sm" className="h-7 flex-1 text-xs" onClick={() => linkedTask.open(t.id)}>
                             {sentBack ? "See feedback" : "Submit for review"}
                           </Button>
                         )}
@@ -128,7 +138,7 @@ export default function MyTasksPage() {
                           size="sm"
                           variant="ghost"
                           className="h-7 px-2"
-                          onClick={() => setSelected(t)}
+                          onClick={() => linkedTask.open(t.id)}
                           aria-label="Open task and updates"
                         >
                           <MessageSquare className="size-3.5" />
@@ -152,7 +162,7 @@ export default function MyTasksPage() {
         />
       )}
 
-      <TaskPanel task={(tasks ?? []).find((t) => t.id === selected?.id) ?? null} mode="member" onClose={() => setSelected(null)} />
+      <TaskPanel task={(tasks ?? []).find((t) => t.id === linkedTask.openId) ?? null} mode="member" onClose={linkedTask.close} />
     </div>
   );
 }
